@@ -23,7 +23,7 @@ Needs PHP 8.2+ (XAMPP's PHP is fine) with `pdo_mysql`, `mbstring`, `openssl`, `f
    php artisan queue:work
    ```
    Check http://localhost:8000/api/v1/health
-5. Run the tests: `php artisan test` (or double-click `scripts\test.bat`, which logs to `storage\logs\test-run.log`)
+5. After pulling new code, double-click `scripts\update.bat` (install, migrate, re-sync roles, test; logs to `storage\logs\update-run.log`). Run the tests: `php artisan test` (or double-click `scripts\test.bat`, which logs to `storage\logs\test-run.log`)
 
 Or double-click `scripts\setup-windows.bat`: it checks PHP/MySQL/Composer, does steps 2–3, runs the tests and logs everything to `storage\logs\setup-run.log`.
 
