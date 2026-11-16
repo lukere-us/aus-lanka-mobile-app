@@ -1,5 +1,9 @@
 <?php
 
+use App\Modules\Orders\OrdersServiceProvider;
+use App\Providers\AppServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
+    AppServiceProvider::class,
+    OrdersServiceProvider::class,
 ];

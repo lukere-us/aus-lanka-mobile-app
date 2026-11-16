@@ -48,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->user()?->getAuthIdentifier() ?: $request->ip()));
 
+        // Payment provider callbacks: generous, but bounded per source IP.
+        RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(600)->by('wh:'.$request->ip()));
+
         // Login, registration and password reset: per account+IP, plus a ceiling per IP (B07).
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()),

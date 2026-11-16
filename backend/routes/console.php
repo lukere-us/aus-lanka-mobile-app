@@ -6,3 +6,6 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('sanctum:prune-expired --hours=24')->daily();
 Schedule::command('queue:prune-failed --hours=168')->daily();
 Schedule::command('auth:clear-resets')->everyFifteenMinutes();
+
+// Release unpaid orders (and, from F05, their reserved tickets) once the hold time passes.
+Schedule::command('orders:expire-pending')->everyMinute()->withoutOverlapping();

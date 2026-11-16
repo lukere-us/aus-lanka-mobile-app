@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM One-time local setup on Windows + XAMPP. Double-click it, or run scripts\setup-windows.bat.
 REM Everything is logged to storage\logs\setup-run.log so problems can be diagnosed afterwards.
 setlocal

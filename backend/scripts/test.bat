@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM Runs the test suite and logs it to storage\logs\test-run.log. Double-click or run scripts\test.bat.
 setlocal
 cd /d "%~dp0.."

@@ -31,10 +31,27 @@ Rule: a module never writes another module's tables directly; it calls that modu
 - Money = `DECIMAL(12,2)` + `currency CHAR(3)` (`App\Support\Money`); timestamps stored **UTC**, shown in Asia/Colombo.
 - Financial, organizer, ticket-state and privileged admin actions are written to **audit_logs**.
 
-## Payments
+## Payments (Milestone 2)
 
-Gateway not chosen yet (PayHere / WEBXPAY under evaluation). Code targets a `PaymentGateway` interface with a
-`FakeGateway` for development and tests; the real adapter plugs in once merchant credentials exist.
+Gateway not chosen yet (PayHere / WEBXPAY under evaluation). Code targets the `PaymentGateway` interface
+(`createCheckout`, `parseWebhook`, `fetchStatus`); `FakeGateway` behaves like a real provider for development and
+tests. A real adapter = one class + a `config/payments.php` entry.
+
+```
+App: POST /orders (Idempotency-Key) ──► Order(pending_payment) + OrderItems(snapshot) + Payment(initiated)
+                                        └─► gateway.createCheckout → checkout_url
+Customer pays at provider
+Provider ──► POST /payments/webhooks/{provider}
+             parseWebhook (signature) → payment_events inbox (unique provider+event_id) → ProcessPaymentEvent job
+             → gateway.fetchStatus (server-side truth) → lock payment + order rows
+             → amount/currency match? → Payment succeeded, Order paid, audit, OrderPaid (after commit, once)
+                                     ✗ → Payment "review", audit, no fulfillment
+App return ──► POST /orders/{ref}/verify-payment → same fetchStatus path (never trusts the app)
+Scheduler ──► orders:expire-pending → checks provider first, then Order expired + OrderExpired (release stock)
+```
+
+Sellable modules plug into checkout by registering a `PurchasableResolver` for their item type
+(`rental_package`, `ticket_type`, ...) in `PurchasableRegistry`; they listen to `OrderPaid` / `OrderExpired`.
 
 ## Environments
 

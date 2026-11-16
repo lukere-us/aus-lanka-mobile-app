@@ -58,6 +58,21 @@ routes/api_v1.php        every v1 endpoint
 | GET | `/api/v1/admin/users/{id}` | `users.view` | One user |
 | PUT | `/api/v1/admin/users/{id}/roles` | `roles.assign` | Replace a user's roles (audited) |
 | PATCH | `/api/v1/admin/users/{id}/status` | `users.manage` | Suspend / reactivate (audited, revokes tokens) |
+| POST | `/api/v1/orders` | `customer.purchase` + `Idempotency-Key` header | Checkout: order + payment, returns `payment.checkout_url` |
+| GET | `/api/v1/orders` | token | My orders / purchase history |
+| GET | `/api/v1/orders/{reference}` | token (owner) | One order with items and payment status |
+| POST | `/api/v1/orders/{reference}/verify-payment` | token (owner) | After returning from checkout: server asks the provider |
+| POST | `/api/v1/orders/{reference}/pay` | token (owner) | New payment attempt after a failed one |
+| POST | `/api/v1/payments/webhooks/{provider}` | provider signature | Payment notifications (stored once, processed on the `payments` queue) |
+| GET | `/api/v1/dev/fake-gateway/{ref}?outcome=succeeded` | — (not in production) | Fake provider checkout page for local testing |
+| GET | `/api/v1/admin/orders` | `orders.view` | Search orders by status, reference, email, dates |
+
+### Try a purchase locally (fake gateway)
+
+Until real items exist, checkout accepts types registered by sellable modules (rentals, tickets) as they land.
+The flow: `POST /orders` → open `payment.checkout_url` and add `?outcome=succeeded` → the fake provider sends a
+signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,default`
+and `php artisan schedule:work` (expires unpaid orders after 15 minutes) alongside `php artisan serve`.
 
 Auth endpoints are limited to 5 attempts per minute per email+IP; other API calls to 120/min per user.
 
