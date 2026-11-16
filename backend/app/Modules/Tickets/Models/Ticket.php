@@ -19,6 +19,9 @@ class Ticket extends Model
 
     public const REFUNDED = 'refunded';
 
+    /** Locked while a refund is with the payment provider; cannot be scanned. */
+    public const REFUND_PENDING = 'refund_pending';
+
     protected $fillable = [
         'event_id', 'ticket_type_id', 'order_id', 'order_item_id', 'user_id', 'sequence', 'qr_token', 'status',
         'checked_in_at', 'checked_in_by',

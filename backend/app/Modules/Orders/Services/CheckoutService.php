@@ -6,6 +6,7 @@ use App\Http\Responses\ApiException;
 use App\Models\User;
 use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Currencies\Services\CurrencyService;
+use App\Modules\Finance\Services\FeeCalculator;
 use App\Modules\Orders\Contracts\ReservesStock;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
@@ -27,6 +28,7 @@ class CheckoutService
         private readonly PaymentService $payments,
         private readonly AuditLogger $audit,
         private readonly CurrencyService $currencies,
+        private readonly FeeCalculator $feeCalculator,
     ) {}
 
     /**
@@ -64,13 +66,15 @@ class CheckoutService
             $subtotal = $subtotal->add($unitPrices[$index]->multiply($item->quantity));
             $baseTotal = $baseTotal->add($item->lineTotal());
         }
-        // Service fees and discounts plug in here (D07, D08); zero for now.
-        $fees = Money::ofMinor(0, $currency);
+        // Booking fee (D07) is set in AUD and converted like prices; discounts (D08) plug in here later.
+        $baseFee = $this->feeCalculator->bookingFee($resolved, array_column($items, 'type'), $baseCode);
+        $fees = $this->currencies->fromBase($baseFee, $chargeCurrency);
+        $baseTotal = $baseTotal->add($baseFee);
         $discount = Money::ofMinor(0, $currency);
         $total = $subtotal->add($fees)->subtract($discount);
 
         try {
-            [$order, $payment] = DB::transaction(function () use ($buyer, $items, $resolved, $unitPrices, $idempotencyKey, $hash, $subtotal, $fees, $discount, $total, $currency, $baseTotal, $chargeCurrency) {
+            [$order, $payment] = DB::transaction(function () use ($buyer, $items, $resolved, $unitPrices, $idempotencyKey, $hash, $subtotal, $fees, $discount, $total, $currency, $baseTotal, $baseFee, $chargeCurrency) {
                 $order = Order::create([
                     'reference' => OrderReference::generate(),
                     'user_id' => $buyer->id,
@@ -79,6 +83,7 @@ class CheckoutService
                     'base_currency' => $baseTotal->currency,
                     'exchange_rate' => $chargeCurrency->is_base ? '1' : (string) $chargeCurrency->rate_per_base,
                     'base_total' => $baseTotal->toDecimal(),
+                    'base_fee_total' => $baseFee->toDecimal(),
                     'subtotal' => $subtotal->toDecimal(),
                     'fee_total' => $fees->toDecimal(),
                     'discount_total' => $discount->toDecimal(),

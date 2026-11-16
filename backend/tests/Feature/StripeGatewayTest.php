@@ -2,19 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Identity\Models\Role;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Payments\Models\PaymentEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\BuildsEvents;
 use Tests\Support\BuildsOrders;
 use Tests\TestCase;
 
 /** Stripe Checkout adapter against a faked Stripe API (no keys or network needed). */
 class StripeGatewayTest extends TestCase
 {
-    use BuildsOrders, RefreshDatabase;
+    use BuildsEvents, BuildsOrders, RefreshDatabase;
 
     private const WHSEC = 'whsec_test_secret';
 
@@ -25,6 +27,8 @@ class StripeGatewayTest extends TestCase
     private int $amountTotal = 300000;
 
     private bool $stripeDown = false;
+
+    private string $refundStatus = 'succeeded';
 
     protected function setUp(): void
     {
@@ -37,10 +41,12 @@ class StripeGatewayTest extends TestCase
         $this->setUpOrders();
 
         Http::fake([
+            'api.stripe.com/v1/refunds/*' => fn () => Http::response(['id' => 're_1', 'status' => $this->refundStatus]),
+            'api.stripe.com/v1/refunds' => fn () => Http::response(['id' => 're_1', 'status' => $this->refundStatus]),
             'api.stripe.com/v1/checkout/sessions/*/expire' => Http::response(['id' => 'cs_test_1', 'status' => 'expired']),
             'api.stripe.com/v1/checkout/sessions/*' => fn () => Http::response([
                 'id' => 'cs_test_1', 'status' => $this->sessionStatus, 'payment_status' => $this->paymentStatus,
-                'amount_total' => $this->amountTotal, 'currency' => 'aud',
+                'amount_total' => $this->amountTotal, 'currency' => 'aud', 'payment_intent' => 'pi_test_1',
             ]),
             'api.stripe.com/v1/checkout/sessions' => fn () => $this->stripeDown
                 ? Http::response(['error' => ['message' => 'down']], 500)
@@ -138,5 +144,26 @@ class StripeGatewayTest extends TestCase
 
         $this->checkout()->assertStatus(502)->assertJsonPath('error.code', 'payment_gateway_unavailable');
         $this->assertSame(1, Order::count());
+    }
+
+    public function test_refund_goes_back_to_the_original_payment_intent_and_pending_refunds_settle_later(): void
+    {
+        $this->buyTickets($this->publishedEvent(), 2)->assertCreated(); // AUD 5,000
+        $this->amountTotal = 500000;
+        $this->paymentStatus = 'paid';
+        $this->stripeEvent('checkout.session.completed')->assertOk();
+        $order = Order::first();
+        $this->assertSame('pi_test_1', $order->latestPayment->provider_payment_id);
+
+        $this->refundStatus = 'pending';
+        $finance = $this->userWithRole(Role::FINANCE_MANAGER);
+        $this->actingAs($finance)->postJson("/api/v1/admin/orders/{$order->reference}/refunds", ['reason' => 'test'])
+            ->assertCreated()->assertJsonPath('data.status', 'processing');
+        Http::assertSent(fn (Request $r) => $r->url() === 'https://api.stripe.com/v1/refunds'
+            && $r['payment_intent'] === 'pi_test_1' && (int) $r['amount'] === 5000_00 && $r->hasHeader('Idempotency-Key'));
+
+        $this->refundStatus = 'succeeded';
+        $this->artisan('refunds:sync')->assertSuccessful();
+        $this->assertSame(OrderStatus::Refunded, $order->fresh()->status);
     }
 }

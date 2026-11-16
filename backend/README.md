@@ -74,6 +74,14 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/rentals/{id}/play` | token (renter) | Checks the rental, starts the window on first play, returns a 10-minute HLS link |
 | PUT | `/api/v1/rentals/{id}/progress` | token (renter) | Save playback position for resume |
 | GET/POST/PATCH | `/api/v1/admin/movies[...]` | `movies.manage` | Movies, video assets, rental packages, publish/unpublish |
+| GET, PUT | `/api/v1/admin/settings` | `settings.manage` | Commission, booking fee, refund windows, payout hold (audited) |
+| GET, POST | `/api/v1/orders/{reference}/refunds` | token (owner) | Customer refund requests (policy-checked) |
+| GET | `/api/v1/admin/refunds` · POST `/{id}/approve`, `/{id}/reject` | `refunds.approve` | Finance reviews refund requests |
+| POST | `/api/v1/admin/orders/{reference}/refunds` | `refunds.approve` | Staff refund outside policy (optional booking fee) |
+| POST | `/api/v1/admin/events/{id}/cancel` | `events.manage` | Cancel event, refund every ticket in full (queued) |
+| POST | `/api/v1/admin/tickets/{id}/cancel` | `events.manage` | Void a ticket without refund |
+| GET | `/api/v1/organizer/balance`, `/organizer/ledger` | organizer owner/manager | Earnings: pending, available, paid out |
+| GET, POST | `/api/v1/admin/organizers/{id}/balance`, `/ledger`, `/payouts` · PUT `/commission` | `payouts.manage` | Balances, payouts, per-organizer commission |
 | GET | `/api/v1/events` | — | Upcoming published events (`q`, `category`, `city`, `from`, `to`) |
 | GET | `/api/v1/events/{slug}` | — | Event details with ticket types, price, availability |
 | POST | `/api/v1/organizer/apply` | customer | Apply to become an organizer (pending until approved) |

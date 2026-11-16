@@ -3,8 +3,10 @@
 namespace App\Modules\Tickets\Services;
 
 use App\Modules\Audit\Services\AuditLogger;
+use App\Modules\Events\Models\Event;
 use App\Modules\Events\Models\TicketType;
 use App\Modules\Events\Services\InventoryService;
+use App\Modules\Finance\Services\LedgerService;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Tickets\Models\Ticket;
@@ -13,7 +15,11 @@ use Illuminate\Support\Facades\DB;
 /** Payment-to-ticket fulfillment (F06). Idempotent: running it twice for one order issues nothing new. */
 class TicketIssuer
 {
-    public function __construct(private readonly InventoryService $inventory, private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly AuditLogger $audit,
+        private readonly LedgerService $ledger,
+    ) {}
 
     /** @return int tickets issued by this call */
     public function issueForOrder(int $orderId): int
@@ -46,6 +52,7 @@ class TicketIssuer
                         'status' => Ticket::VALID,
                     ]);
                 }
+                $this->ledger->postTicketSale($item, Event::with('organizer')->findOrFail($eventId)); // organizer earnings (D07)
                 $issued += $item->quantity;
             }
 

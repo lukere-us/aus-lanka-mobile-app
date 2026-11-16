@@ -18,6 +18,7 @@ final class GatewayStatus
         public readonly string $status,
         public readonly ?Money $amount = null,
         public readonly ?string $reason = null,
+        public readonly ?string $providerPaymentId = null,
     ) {}
 
     public function isFinal(): bool

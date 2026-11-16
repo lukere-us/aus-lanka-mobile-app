@@ -5,6 +5,7 @@ namespace App\Modules\Orders;
 use App\Modules\Orders\Console\ExpirePendingOrders;
 use App\Modules\Orders\Support\PurchasableRegistry;
 use App\Modules\Payments\Services\PaymentGatewayManager;
+use App\Modules\Refunds\Console\SyncRefunds;
 use Illuminate\Support\ServiceProvider;
 
 class OrdersServiceProvider extends ServiceProvider
@@ -18,7 +19,7 @@ class OrdersServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([ExpirePendingOrders::class]);
+            $this->commands([ExpirePendingOrders::class, SyncRefunds::class]);
         }
         // Sellable modules register here as they arrive, e.g.:
         // $this->app->make(PurchasableRegistry::class)->register('rental_package', RentalPackageResolver::class);

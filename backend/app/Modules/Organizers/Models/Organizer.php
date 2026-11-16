@@ -25,12 +25,12 @@ class Organizer extends Model
 
     protected $fillable = [
         'owner_id', 'name', 'slug', 'contact_email', 'contact_phone', 'business_registration_no', 'status',
-        'status_reason', 'approved_at', 'approved_by',
+        'status_reason', 'commission_bps', 'approved_at', 'approved_by',
     ];
 
     protected function casts(): array
     {
-        return ['approved_at' => 'datetime'];
+        return ['approved_at' => 'datetime', 'commission_bps' => 'integer'];
     }
 
     public function owner(): BelongsTo

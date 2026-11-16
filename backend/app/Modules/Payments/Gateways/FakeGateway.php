@@ -6,6 +6,7 @@ use App\Modules\Orders\Models\Order;
 use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Data\CheckoutSession;
 use App\Modules\Payments\Data\GatewayStatus;
+use App\Modules\Payments\Data\RefundResult;
 use App\Modules\Payments\Data\WebhookNotification;
 use App\Modules\Payments\Exceptions\InvalidWebhookSignature;
 use App\Modules\Payments\Models\Payment;
@@ -63,7 +64,25 @@ class FakeGateway implements PaymentGateway
             return new GatewayStatus(GatewayStatus::PENDING);
         }
 
-        return new GatewayStatus($state['status'], Money::of($state['amount'], $state['currency']), $state['reason'] ?? null);
+        return new GatewayStatus($state['status'], Money::of($state['amount'], $state['currency']), $state['reason'] ?? null, 'pi_'.$payment->provider_reference);
+    }
+
+    public function refund(Payment $payment, Money $amount, string $idempotencyKey): RefundResult
+    {
+        if ($this->cache->get('fakepay:refunds_fail')) {
+            return new RefundResult(RefundResult::FAILED, reason: 'card_declined_refund');
+        }
+        $id = $this->cache->get("fakepay:refund:{$idempotencyKey}") ?? 're_fake_'.Str::random(16);
+        $this->cache->put("fakepay:refund:{$idempotencyKey}", $id, now()->addDay());
+        $this->cache->increment("fakepay:refund_count:{$payment->provider_reference}");
+
+        return new RefundResult(RefundResult::SUCCEEDED, $id);
+    }
+
+    /** Test helper: make the next refunds fail (true) or succeed again (false). */
+    public function failRefunds(bool $fail = true): void
+    {
+        $this->cache->put('fakepay:refunds_fail', $fail, now()->addHour());
     }
 
     public function cancelCheckout(Payment $payment): void

@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Order extends Model
 {
     protected $fillable = [
-        'reference', 'user_id', 'status', 'currency', 'base_currency', 'exchange_rate', 'base_total', 'subtotal', 'discount_total', 'fee_total', 'total',
+        'reference', 'user_id', 'status', 'currency', 'base_currency', 'exchange_rate', 'base_total', 'base_fee_total', 'subtotal', 'discount_total', 'fee_total', 'total',
         'idempotency_key', 'request_hash', 'expires_at', 'paid_at', 'cancelled_at',
     ];
 
@@ -28,6 +28,7 @@ class Order extends Model
             'fee_total' => 'decimal:2',
             'total' => 'decimal:2',
             'base_total' => 'decimal:2',
+            'base_fee_total' => 'decimal:2',
             'exchange_rate' => 'decimal:8',
             'expires_at' => 'datetime',
             'paid_at' => 'datetime',
@@ -53,6 +54,11 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function succeededPayment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->ofMany(['id' => 'max'], fn ($q) => $q->where('status', Payment::SUCCEEDED));
     }
 
     public function latestPayment(): HasOne

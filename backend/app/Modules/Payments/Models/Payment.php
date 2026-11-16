@@ -22,7 +22,7 @@ class Payment extends Model
     public const REVIEW = 'review';
 
     protected $fillable = [
-        'order_id', 'provider', 'provider_reference', 'status', 'amount', 'currency', 'checkout_url',
+        'order_id', 'provider', 'provider_reference', 'provider_payment_id', 'status', 'amount', 'currency', 'checkout_url',
         'failure_reason', 'verified_at',
     ];
 

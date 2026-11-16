@@ -6,6 +6,7 @@ use App\Modules\Orders\Models\Order;
 use App\Modules\Payments\Contracts\PaymentGateway;
 use App\Modules\Payments\Data\CheckoutSession;
 use App\Modules\Payments\Data\GatewayStatus;
+use App\Modules\Payments\Data\RefundResult;
 use App\Modules\Payments\Data\WebhookNotification;
 use App\Modules\Payments\Exceptions\InvalidWebhookSignature;
 use App\Modules\Payments\Models\Payment;
@@ -128,14 +129,53 @@ class StripeGateway implements PaymentGateway
 
         $session = $response->json();
         if (($session['payment_status'] ?? null) === 'paid') {
+            $intent = $session['payment_intent'] ?? null;
+
             return new GatewayStatus(GatewayStatus::SUCCEEDED,
-                Money::ofMinor((int) $session['amount_total'], strtoupper((string) $session['currency'])));
+                Money::ofMinor((int) $session['amount_total'], strtoupper((string) $session['currency'])),
+                providerPaymentId: is_array($intent) ? ($intent['id'] ?? null) : $intent);
         }
         if (($session['status'] ?? null) === 'expired') {
             return new GatewayStatus(GatewayStatus::CANCELLED, reason: 'checkout_expired');
         }
 
         return new GatewayStatus(GatewayStatus::PENDING);
+    }
+
+    public function refund(Payment $payment, Money $amount, string $idempotencyKey): RefundResult
+    {
+        if (! $payment->provider_payment_id) {
+            return new RefundResult(RefundResult::FAILED, reason: 'missing_payment_intent');
+        }
+
+        $response = $this->client()->withHeaders(['Idempotency-Key' => $idempotencyKey])->post(self::API.'/refunds', [
+            'payment_intent' => $payment->provider_payment_id,
+            'amount' => $amount->minor,
+            'metadata' => ['payment_id' => (string) $payment->id, 'key' => $idempotencyKey],
+        ]);
+        if (! $response->successful()) {
+            return new RefundResult(RefundResult::FAILED, reason: mb_substr((string) ($response->json('error.code') ?? $response->status()), 0, 100));
+        }
+
+        return new RefundResult(match ($response->json('status')) {
+            'succeeded' => RefundResult::SUCCEEDED,
+            'failed', 'canceled' => RefundResult::FAILED,
+            default => RefundResult::PENDING, // pending / requires_action: settled later by refunds:sync
+        }, (string) $response->json('id'), $response->json('failure_reason'));
+    }
+
+    public function refundStatus(string $providerRefundId): RefundResult
+    {
+        $response = $this->client()->get(self::API.'/refunds/'.urlencode($providerRefundId));
+        if (! $response->successful()) {
+            throw new RuntimeException('Stripe refund lookup failed: '.$response->status());
+        }
+
+        return new RefundResult(match ($response->json('status')) {
+            'succeeded' => RefundResult::SUCCEEDED,
+            'failed', 'canceled' => RefundResult::FAILED,
+            default => RefundResult::PENDING,
+        }, $providerRefundId, $response->json('failure_reason'));
     }
 
     public function cancelCheckout(Payment $payment): void

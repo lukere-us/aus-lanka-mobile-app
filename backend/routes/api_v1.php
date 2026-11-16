@@ -6,6 +6,7 @@ use App\Modules\Currencies\Http\Controllers\CurrencyController;
 use App\Modules\Events\Http\Controllers\AdminEventController;
 use App\Modules\Events\Http\Controllers\OrganizerEventController;
 use App\Modules\Events\Http\Controllers\PublicEventController;
+use App\Modules\Finance\Http\Controllers\FinanceController;
 use App\Modules\Identity\Http\Controllers\AuthController;
 use App\Modules\Identity\Http\Controllers\PasswordResetController;
 use App\Modules\Movies\Http\Controllers\AdminMovieController;
@@ -16,8 +17,10 @@ use App\Modules\Organizers\Http\Controllers\AdminOrganizerController;
 use App\Modules\Organizers\Http\Controllers\OrganizerController;
 use App\Modules\Payments\Http\Controllers\FakeGatewayController;
 use App\Modules\Payments\Http\Controllers\WebhookController;
+use App\Modules\Refunds\Http\Controllers\RefundController;
 use App\Modules\Rentals\Http\Controllers\DevStreamController;
 use App\Modules\Rentals\Http\Controllers\RentalController;
+use App\Modules\Settings\Http\Controllers\SettingsController;
 use App\Modules\Tickets\Http\Controllers\CheckInController;
 use App\Modules\Tickets\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('{reference}', [OrderController::class, 'show'])->name('show');
         Route::post('{reference}/verify-payment', [OrderController::class, 'verifyPayment'])->name('verify-payment');
         Route::post('{reference}/pay', [OrderController::class, 'retryPayment'])->middleware('permission:customer.purchase')->name('pay');
+        Route::get('{reference}/refunds', [RefundController::class, 'customerIndex'])->name('refunds.index');
+        Route::post('{reference}/refunds', [RefundController::class, 'customerRequest'])->name('refunds.store');
     });
 
     // --- Movie rentals and playback (E05, E07, E08) ----------------------------------------
@@ -92,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('organizer/apply', [OrganizerController::class, 'apply'])->middleware('permission:organizer.apply')->name('organizer.apply');
     Route::prefix('organizer')->name('organizer.')->group(function () {
         Route::get('profile', [OrganizerController::class, 'show'])->name('profile');
+        Route::get('balance', [FinanceController::class, 'myBalance'])->name('balance');
+        Route::get('ledger', [FinanceController::class, 'myLedger'])->name('ledger');
         Route::middleware('permission:organizer.staff.manage')->group(function () {
             Route::post('staff', [OrganizerController::class, 'addStaff'])->name('staff.store');
             Route::delete('staff/{user}', [OrganizerController::class, 'removeStaff'])->name('staff.destroy');
@@ -129,6 +136,26 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('{movie}/assets', [AdminMovieController::class, 'addAsset'])->name('assets.store');
             Route::post('{movie}/packages', [AdminMovieController::class, 'addPackage'])->name('packages.store');
             Route::patch('{movie}/packages/{package}', [AdminMovieController::class, 'updatePackage'])->name('packages.update');
+        });
+
+        Route::get('settings', [SettingsController::class, 'index'])->middleware('permission:settings.manage')->name('settings.index');
+        Route::put('settings', [SettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
+
+        Route::middleware('permission:refunds.approve')->group(function () {
+            Route::get('refunds', [RefundController::class, 'index'])->name('refunds.index');
+            Route::post('refunds/{refund}/approve', [RefundController::class, 'approve'])->name('refunds.approve');
+            Route::post('refunds/{refund}/reject', [RefundController::class, 'reject'])->name('refunds.reject');
+            Route::post('orders/{reference}/refunds', [RefundController::class, 'staffRefund'])->name('orders.refunds.store');
+        });
+        Route::post('events/{event}/cancel', [RefundController::class, 'cancelEvent'])->middleware('permission:events.manage')->name('events.cancel');
+        Route::post('tickets/{ticket}/cancel', [RefundController::class, 'cancelTicket'])->middleware('permission:events.manage')->name('tickets.cancel');
+
+        Route::middleware('permission:payouts.manage')->group(function () {
+            Route::get('payouts', [FinanceController::class, 'payouts'])->name('payouts.index');
+            Route::get('organizers/{organizer}/balance', [FinanceController::class, 'balance'])->name('organizers.balance');
+            Route::get('organizers/{organizer}/ledger', [FinanceController::class, 'ledger'])->name('organizers.ledger');
+            Route::post('organizers/{organizer}/payouts', [FinanceController::class, 'recordPayout'])->name('organizers.payouts.store');
+            Route::put('organizers/{organizer}/commission', [FinanceController::class, 'setCommission'])->name('organizers.commission');
         });
 
         Route::get('organizers', [AdminOrganizerController::class, 'index'])->middleware('permission:organizers.approve')->name('organizers.index');

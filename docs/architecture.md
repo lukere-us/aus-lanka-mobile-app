@@ -107,3 +107,22 @@ expiring link (`/api/v1/dev/stream/{token}`) that redirects to a public test fil
 before the client chooses Bunny Stream or Cloudflare Stream. With a real provider the CDN itself validates the
 signed token, so the video files are never reachable without one. DRM (Widevine/FairPlay) is a provider setting plus
 player configuration; not enabled until a licence requires it.
+
+## Fees, commissions, refunds and payouts (D06, D07, F08)
+
+Admin-editable settings (`/api/v1/admin/settings`, audited; placeholder defaults until the product owner confirms):
+`ticket_commission_bps` 1000 (10%), `booking_fee_per_ticket` 0.00 AUD, `booking_fee_bps` 0, `ticket_refund_cutoff_hours` 48,
+`rental_refund_window_hours` 48, `payout_hold_days` 2. Organizers can carry their own commission rate.
+
+```
+Checkout: booking fee (tickets only) = per-ticket AUD fee + % of ticket subtotal -> converted like prices -> fee_total
+Tickets issued -> organizer ledger: +sale (AUD line total), -commission (rate snapshot)        [source_key = idempotent]
+Refund request (customer, policy-checked) | staff refund (no policy, optional fees) | event cancelled (all tickets + fees)
+  approve: lock -> tickets valid->refund_pending (unscannable), unwatched rentals ready->revoked
+  provider refund on the original payment (Stripe payment_intent; Idempotency-Key refund-{id})
+    succeeded -> tickets refunded, seat back on sale (future events), ledger -refund +commission_reversal,
+                 order partially_refunded / refunded
+    failed    -> tickets/rentals restored, refund failed
+    pending   -> refunds:sync (every 10 min) settles it later
+Balance = SUM(ledger); available = entries for events started >= hold days ago, minus payouts; payout <= available
+```

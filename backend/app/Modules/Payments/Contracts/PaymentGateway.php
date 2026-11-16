@@ -5,9 +5,11 @@ namespace App\Modules\Payments\Contracts;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Payments\Data\CheckoutSession;
 use App\Modules\Payments\Data\GatewayStatus;
+use App\Modules\Payments\Data\RefundResult;
 use App\Modules\Payments\Data\WebhookNotification;
 use App\Modules\Payments\Exceptions\InvalidWebhookSignature;
 use App\Modules\Payments\Models\Payment;
+use App\Support\Money;
 
 /**
  * One adapter per provider (Fake now; PayHere / WEBXPAY once chosen). Rule (plan 2.1): an order is
@@ -34,4 +36,7 @@ interface PaymentGateway
 
     /** Close the provider's checkout page (our order expired first). Best effort. */
     public function cancelCheckout(Payment $payment): void;
+
+    /** Return money for a succeeded payment. $idempotencyKey makes retries safe. */
+    public function refund(Payment $payment, Money $amount, string $idempotencyKey): RefundResult;
 }

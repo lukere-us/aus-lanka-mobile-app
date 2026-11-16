@@ -165,7 +165,8 @@ class PaymentService
                 return 'amount_mismatch';
             }
 
-            $locked->forceFill(['status' => Payment::SUCCEEDED, 'verified_at' => now(), 'failure_reason' => null])->save();
+            $locked->forceFill(['status' => Payment::SUCCEEDED, 'verified_at' => now(), 'failure_reason' => null,
+                'provider_payment_id' => $status->providerPaymentId ?? $locked->provider_payment_id])->save();
             $this->audit->record('payment.succeeded', $locked, ['amount' => $expected->toArray(), 'source' => $source]);
 
             $before = $order->status;
