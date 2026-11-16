@@ -66,12 +66,25 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/payments/webhooks/{provider}` | provider signature | Payment notifications (stored once, processed on the `payments` queue) |
 | GET | `/api/v1/dev/fake-gateway/{ref}?outcome=succeeded` | — (not in production) | Fake provider checkout page for local testing |
 | GET | `/api/v1/admin/orders` | `orders.view` | Search orders by status, reference, email, dates |
+| GET | `/api/v1/events` | — | Upcoming published events (`q`, `category`, `city`, `from`, `to`) |
+| GET | `/api/v1/events/{slug}` | — | Event details with ticket types, price, availability |
+| POST | `/api/v1/organizer/apply` | customer | Apply to become an organizer (pending until approved) |
+| GET | `/api/v1/organizer/profile` | organizer member | Organizer profile + members |
+| POST/DELETE | `/api/v1/organizer/staff` | organizer owner | Add managers / gate staff by email; remove them |
+| GET/POST | `/api/v1/organizer/venues` | `organizer.events.manage` | Venues the organizer can use / add one |
+| GET/POST/PATCH | `/api/v1/organizer/events[/{id}]` | `organizer.events.manage` | Own events: create draft, edit |
+| POST | `/api/v1/organizer/events/{id}/submit` | `organizer.events.manage` | Send for review (approved organizers only) |
+| POST/PATCH | `/api/v1/organizer/events/{id}/ticket-types[/{id}]` | `organizer.events.manage` | Ticket types: price, quantity, sale window, max per order |
+| GET, PATCH `/{id}/status` | `/api/v1/admin/organizers` | `organizers.approve` | Approve / reject / suspend organizers |
+| GET, POST `/{id}/review` | `/api/v1/admin/events` | `events.approve` | Approve or reject events awaiting review |
+| GET | `/api/v1/tickets`, `/api/v1/tickets/{id}` | token (holder) | Ticket wallet with QR value |
+| POST | `/api/v1/scanner/check-in` | `scanner.checkin` (assigned organizer) | Scan `{qr, event_id}`: admitted once, then `ticket_already_used` |
 
 ### Try a purchase locally (fake gateway)
 
-Until real items exist, checkout accepts types registered by sellable modules (rentals, tickets) as they land.
+Checkout sells event tickets: `{"items":[{"type":"ticket_type","id":1,"quantity":2}]}` (movie rentals arrive next).
 The flow: `POST /orders` → open `payment.checkout_url` and add `?outcome=succeeded` → the fake provider sends a
-signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,default`
+signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,fulfillment,default`
 and `php artisan schedule:work` (expires unpaid orders after 15 minutes) alongside `php artisan serve`.
 
 Auth endpoints are limited to 5 attempts per minute per email+IP; other API calls to 120/min per user.
