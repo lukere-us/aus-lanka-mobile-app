@@ -25,7 +25,7 @@ Needs PHP 8.2+ (XAMPP's PHP is fine) with `pdo_mysql`, `mbstring`, `openssl`, `f
    Check http://localhost:8000/api/v1/health
 5. Run the tests: `php artisan test`
 
-Or run `scripts\setup-windows.bat`, which does steps 2–3 and runs the tests.
+Or double-click `scripts\setup-windows.bat`: it checks PHP/MySQL/Composer, does steps 2–3, runs the tests and logs everything to `storage\logs\setup-run.log`.
 
 ## Layout
 
