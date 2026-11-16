@@ -5,6 +5,7 @@ namespace App\Modules\Orders\Services;
 use App\Http\Responses\ApiException;
 use App\Models\User;
 use App\Modules\Audit\Services\AuditLogger;
+use App\Modules\Orders\Contracts\ReservesStock;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Orders\Support\OrderReference;
@@ -74,7 +75,7 @@ class CheckoutService
                 ]);
 
                 foreach ($resolved as $index => $item) {
-                    $order->items()->create([
+                    $orderItem = $order->items()->create([
                         'item_type' => $items[$index]['type'],
                         'purchasable_type' => $item->purchasable?->getMorphClass(),
                         'purchasable_id' => $item->purchasable?->getKey(),
@@ -85,6 +86,11 @@ class CheckoutService
                         'currency' => $item->unitPrice->currency,
                         'metadata' => $item->metadata ?: null,
                     ]);
+
+                    $resolver = $this->registry->resolver($items[$index]['type']);
+                    if ($resolver instanceof ReservesStock) {
+                        $resolver->reserve($order, $orderItem, $item); // throws (and rolls back) when stock ran out
+                    }
                 }
 
                 $this->audit->record('order.created', $order, ['total' => $total->toArray()]);

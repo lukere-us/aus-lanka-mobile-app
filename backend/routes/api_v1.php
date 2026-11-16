@@ -2,12 +2,19 @@
 
 use App\Http\Controllers\HealthController;
 use App\Modules\Admin\Http\Controllers\UserManagementController;
+use App\Modules\Events\Http\Controllers\AdminEventController;
+use App\Modules\Events\Http\Controllers\OrganizerEventController;
+use App\Modules\Events\Http\Controllers\PublicEventController;
 use App\Modules\Identity\Http\Controllers\AuthController;
 use App\Modules\Identity\Http\Controllers\PasswordResetController;
 use App\Modules\Orders\Http\Controllers\AdminOrderController;
 use App\Modules\Orders\Http\Controllers\OrderController;
+use App\Modules\Organizers\Http\Controllers\AdminOrganizerController;
+use App\Modules\Organizers\Http\Controllers\OrganizerController;
 use App\Modules\Payments\Http\Controllers\FakeGatewayController;
 use App\Modules\Payments\Http\Controllers\WebhookController;
+use App\Modules\Tickets\Http\Controllers\CheckInController;
+use App\Modules\Tickets\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('health', HealthController::class)->name('health');
@@ -25,6 +32,10 @@ Route::prefix('auth')->name('auth.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     });
 });
+
+// --- Public event discovery (F02) -------------------------------------------------
+Route::get('events', [PublicEventController::class, 'index'])->name('events.index');
+Route::get('events/{slug}', [PublicEventController::class, 'show'])->name('events.show');
 
 // --- Payment provider notifications (D03/D04): signature-checked, no user auth ----------
 Route::post('payments/webhooks/{provider}', WebhookController::class)
@@ -47,6 +58,34 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{reference}/pay', [OrderController::class, 'retryPayment'])->middleware('permission:customer.purchase')->name('pay');
     });
 
+    // --- Ticket wallet (F07) ------------------------------------------------------------
+    Route::get('tickets', [WalletController::class, 'index'])->name('tickets.index');
+    Route::get('tickets/{ticket}', [WalletController::class, 'show'])->name('tickets.show');
+
+    // --- Gate scanner (G03) ---------------------------------------------------------------
+    Route::post('scanner/check-in', CheckInController::class)->middleware(['permission:scanner.checkin|events.manage', 'throttle:scanner'])->name('scanner.check-in');
+
+    // --- Organizer portal (C05, F01, F03) ------------------------------------------------
+    Route::post('organizer/apply', [OrganizerController::class, 'apply'])->middleware('permission:organizer.apply')->name('organizer.apply');
+    Route::prefix('organizer')->name('organizer.')->group(function () {
+        Route::get('profile', [OrganizerController::class, 'show'])->name('profile');
+        Route::middleware('permission:organizer.staff.manage')->group(function () {
+            Route::post('staff', [OrganizerController::class, 'addStaff'])->name('staff.store');
+            Route::delete('staff/{user}', [OrganizerController::class, 'removeStaff'])->name('staff.destroy');
+        });
+        Route::middleware('permission:organizer.events.manage')->group(function () {
+            Route::get('venues', [OrganizerEventController::class, 'venues'])->name('venues.index');
+            Route::post('venues', [OrganizerEventController::class, 'storeVenue'])->name('venues.store');
+            Route::get('events', [OrganizerEventController::class, 'index'])->name('events.index');
+            Route::post('events', [OrganizerEventController::class, 'store'])->name('events.store');
+            Route::get('events/{event}', [OrganizerEventController::class, 'show'])->whereNumber('event')->name('events.show');
+            Route::patch('events/{event}', [OrganizerEventController::class, 'update'])->whereNumber('event')->name('events.update');
+            Route::post('events/{event}/submit', [OrganizerEventController::class, 'submit'])->whereNumber('event')->name('events.submit');
+            Route::post('events/{event}/ticket-types', [OrganizerEventController::class, 'storeTicketType'])->whereNumber('event')->name('ticket-types.store');
+            Route::patch('events/{event}/ticket-types/{ticketType}', [OrganizerEventController::class, 'updateTicketType'])->whereNumber(['event', 'ticketType'])->name('ticket-types.update');
+        });
+    });
+
     // --- Admin: users, roles, status (C03, I05 API) --------------------------------
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('users', [UserManagementController::class, 'index'])->middleware('permission:users.view')->name('users.index');
@@ -56,5 +95,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('orders', [AdminOrderController::class, 'index'])->middleware('permission:orders.view')->name('orders.index');
         Route::get('orders/{reference}', [AdminOrderController::class, 'show'])->middleware('permission:orders.view')->name('orders.show');
+
+        Route::get('organizers', [AdminOrganizerController::class, 'index'])->middleware('permission:organizers.approve')->name('organizers.index');
+        Route::patch('organizers/{organizer}/status', [AdminOrganizerController::class, 'updateStatus'])->middleware('permission:organizers.approve')->name('organizers.status');
+
+        Route::get('events', [AdminEventController::class, 'index'])->middleware('permission:events.approve|events.manage')->name('events.index');
+        Route::post('events/{event}/review', [AdminEventController::class, 'review'])->middleware('permission:events.approve')->name('events.review');
     });
 });

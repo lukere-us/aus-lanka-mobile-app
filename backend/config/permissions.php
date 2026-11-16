@@ -26,6 +26,7 @@ return [
         'organizer.staff.manage' => 'Invite and manage own gate staff (organizer)',
         'scanner.checkin' => 'Scan and check in tickets at assigned events',
         'customer.purchase' => 'Buy rentals and tickets',
+        'organizer.apply' => 'Apply to become an event organizer',
     ],
 
     // slug => [name, permissions]. super_admin is granted everything by Gate::before.
@@ -38,8 +39,8 @@ return [
         'finance_manager' => ['Finance Manager', ['orders.view', 'refunds.approve', 'payouts.manage', 'reports.view']],
         'content_manager' => ['Content Manager', ['movies.manage', 'reports.view']],
         'event_manager' => ['Event Manager', ['events.manage', 'events.approve', 'organizers.approve', 'reports.view']],
-        'organizer' => ['Organizer', ['organizer.events.manage', 'organizer.attendees.view', 'organizer.staff.manage']],
+        'organizer' => ['Organizer', ['organizer.events.manage', 'organizer.attendees.view', 'organizer.staff.manage', 'scanner.checkin']],
         'gate_staff' => ['Gate Staff', ['scanner.checkin']],
-        'customer' => ['Customer', ['customer.purchase']],
+        'customer' => ['Customer', ['customer.purchase', 'organizer.apply']],
     ],
 ];

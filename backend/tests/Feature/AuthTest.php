@@ -34,7 +34,7 @@ class AuthTest extends TestCase
             ->assertJsonPath('data.token_type', 'Bearer')
             ->assertJsonPath('data.user.email', 'nimali@example.com')
             ->assertJsonPath('data.user.roles', ['customer'])
-            ->assertJsonPath('data.user.permissions', ['customer.purchase']);
+            ->assertJsonPath('data.user.permissions', fn ($p) => collect($p)->sort()->values()->all() === ['customer.purchase', 'organizer.apply']);
         $this->assertNotEmpty($response->json('data.token'));
         $this->assertTrue(User::where('email', 'nimali@example.com')->first()->hasRole(Role::CUSTOMER));
     }

@@ -51,6 +51,9 @@ class AppServiceProvider extends ServiceProvider
         // Payment provider callbacks: generous, but bounded per source IP.
         RateLimiter::for('webhooks', fn (Request $request) => Limit::perMinute(600)->by('wh:'.$request->ip()));
 
+        // Gate scanners: a busy gate scans fast, but cap per device/user.
+        RateLimiter::for('scanner', fn (Request $request) => Limit::perMinute(240)->by('scan:'.($request->user()?->getAuthIdentifier() ?: $request->ip())));
+
         // Login, registration and password reset: per account+IP, plus a ceiling per IP (B07).
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()),

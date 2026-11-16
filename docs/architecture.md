@@ -60,3 +60,20 @@ Sellable modules plug into checkout by registering a `PurchasableResolver` for t
 | Local | XAMPP MariaDB | database driver | `php artisan serve` |
 | CI | MySQL 8 service | sync | GitHub Actions, `backend-ci.yml` |
 | Staging / Prod | MySQL 8 InnoDB | Redis + Horizon (planned) | HTTPS only, secrets outside git |
+
+## Ticketing (Milestone 3)
+
+```
+Organizer applies ─► pending ─► admin/event manager approves ─► owner gets Organizer role
+Organizer: venue → draft event → ticket types (General / Early Bird / VIP / VVIP / custom) → submit
+Admin review ─► published ─► public discovery (/events)
+Checkout {"type":"ticket_type"} ─► TicketTypeResolver (on sale? window? max per order?)
+   └─ inside the order transaction: lock ticket_type row → available ≥ qty? → reserved += qty, reservation(held)
+OrderPaid  ─► IssueTicketsForPaidOrder (queue: fulfillment) ─► lock → reserved -= qty, sold += qty → N tickets (opaque QR)
+OrderExpired ─► release held reservations once (reserved -= qty)
+Late payment after expiry ─► takes free stock if any, else no tickets + audit "tickets.unfulfillable" (refund)
+Gate scan ─► UPDATE tickets SET status='used' WHERE id=? AND status='valid'  (1 row = admitted, 0 = rejected)
+```
+
+Inventory invariant: `quantity_sold + quantity_reserved ≤ quantity_total`, changed only by `InventoryService` under a row lock.
+Organizer data is always scoped through `OrganizerContext` (organizer_members); gate staff can scan only their organizer's events.
