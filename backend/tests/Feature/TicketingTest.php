@@ -45,7 +45,9 @@ class TicketingTest extends TestCase
         $this->assertCount(3, $tickets->pluck('qr_token')->unique());
         foreach ($tickets as $t) {
             $this->assertMatchesRegularExpression('/^TK1\.[A-Za-z0-9_-]{32}$/', $t->qr_token);
-            $this->assertStringNotContainsString((string) $this->customer->id, substr($t->qr_token, 4, 3)); // opaque, no ids
+            // Opaque: carries no personal or order data.
+            $this->assertStringNotContainsString($this->customer->email, $t->qr_token);
+            $this->assertStringNotContainsString($ref, $t->qr_token);
         }
         $this->assertSame(TicketReservation::CONVERTED, TicketReservation::first()->status);
     }

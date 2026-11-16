@@ -54,6 +54,9 @@ class AppServiceProvider extends ServiceProvider
         // Gate scanners: a busy gate scans fast, but cap per device/user.
         RateLimiter::for('scanner', fn (Request $request) => Limit::perMinute(240)->by('scan:'.($request->user()?->getAuthIdentifier() ?: $request->ip())));
 
+        // Playback starts and progress saves (an app saves progress every ~15 s).
+        RateLimiter::for('playback', fn (Request $request) => Limit::perMinute(30)->by('play:'.$request->user()?->getAuthIdentifier()));
+
         // Login, registration and password reset: per account+IP, plus a ceiling per IP (B07).
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()),

@@ -8,12 +8,16 @@ use App\Modules\Events\Http\Controllers\OrganizerEventController;
 use App\Modules\Events\Http\Controllers\PublicEventController;
 use App\Modules\Identity\Http\Controllers\AuthController;
 use App\Modules\Identity\Http\Controllers\PasswordResetController;
+use App\Modules\Movies\Http\Controllers\AdminMovieController;
+use App\Modules\Movies\Http\Controllers\PublicMovieController;
 use App\Modules\Orders\Http\Controllers\AdminOrderController;
 use App\Modules\Orders\Http\Controllers\OrderController;
 use App\Modules\Organizers\Http\Controllers\AdminOrganizerController;
 use App\Modules\Organizers\Http\Controllers\OrganizerController;
 use App\Modules\Payments\Http\Controllers\FakeGatewayController;
 use App\Modules\Payments\Http\Controllers\WebhookController;
+use App\Modules\Rentals\Http\Controllers\DevStreamController;
+use App\Modules\Rentals\Http\Controllers\RentalController;
 use App\Modules\Tickets\Http\Controllers\CheckInController;
 use App\Modules\Tickets\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +41,10 @@ Route::prefix('auth')->name('auth.')->group(function () {
 // --- Currencies customers can pay in (AUD base) ---------------------------------------
 Route::get('currencies', [CurrencyController::class, 'index'])->name('currencies.index');
 
+// --- Movie discovery (E02) ------------------------------------------------------------
+Route::get('movies', [PublicMovieController::class, 'index'])->name('movies.index');
+Route::get('movies/{slug}', [PublicMovieController::class, 'show'])->name('movies.show');
+
 // --- Public event discovery (F02) -------------------------------------------------
 Route::get('events', [PublicEventController::class, 'index'])->name('events.index');
 Route::get('events/{slug}', [PublicEventController::class, 'show'])->name('events.show');
@@ -48,6 +56,11 @@ Route::post('payments/webhooks/{provider}', WebhookController::class)
 // Local stand-in for the provider's hosted checkout page; never registered in production.
 if (! app()->isProduction() && config('payments.default') === 'fake') {
     Route::get('dev/fake-gateway/{reference}', FakeGatewayController::class)->name('dev.fake-gateway');
+}
+// Sample video provider: signed-link "CDN" + a browser test player; never registered in production.
+if (! app()->isProduction() && config('video.provider') === 'sample') {
+    Route::get('dev/stream/{token}', [DevStreamController::class, 'stream'])->where('token', '[A-Za-z0-9_\-.]+')->name('dev.stream');
+    Route::get('dev/player', [DevStreamController::class, 'player'])->name('dev.player');
 }
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -61,6 +74,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{reference}/verify-payment', [OrderController::class, 'verifyPayment'])->name('verify-payment');
         Route::post('{reference}/pay', [OrderController::class, 'retryPayment'])->middleware('permission:customer.purchase')->name('pay');
     });
+
+    // --- Movie rentals and playback (E05, E07, E08) ----------------------------------------
+    Route::get('rentals', [RentalController::class, 'index'])->name('rentals.index');
+    Route::get('rentals/{rental}', [RentalController::class, 'show'])->whereNumber('rental')->name('rentals.show');
+    Route::post('rentals/{rental}/play', [RentalController::class, 'play'])->whereNumber('rental')->middleware('throttle:playback')->name('rentals.play');
+    Route::put('rentals/{rental}/progress', [RentalController::class, 'progress'])->whereNumber('rental')->middleware('throttle:playback')->name('rentals.progress');
 
     // --- Ticket wallet (F07) ------------------------------------------------------------
     Route::get('tickets', [WalletController::class, 'index'])->name('tickets.index');
@@ -102,6 +121,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('currencies', [CurrencyController::class, 'adminIndex'])->middleware('permission:settings.manage')->name('currencies.index');
         Route::put('currencies/{code}', [CurrencyController::class, 'upsert'])->middleware('permission:settings.manage')->where('code', '[A-Za-z]{3}')->name('currencies.upsert');
+
+        Route::middleware('permission:movies.manage')->prefix('movies')->name('movies.')->group(function () {
+            Route::get('/', [AdminMovieController::class, 'index'])->name('index');
+            Route::post('/', [AdminMovieController::class, 'store'])->name('store');
+            Route::patch('{movie}', [AdminMovieController::class, 'update'])->name('update');
+            Route::post('{movie}/assets', [AdminMovieController::class, 'addAsset'])->name('assets.store');
+            Route::post('{movie}/packages', [AdminMovieController::class, 'addPackage'])->name('packages.store');
+            Route::patch('{movie}/packages/{package}', [AdminMovieController::class, 'updatePackage'])->name('packages.update');
+        });
 
         Route::get('organizers', [AdminOrganizerController::class, 'index'])->middleware('permission:organizers.approve')->name('organizers.index');
         Route::patch('organizers/{organizer}/status', [AdminOrganizerController::class, 'updateStatus'])->middleware('permission:organizers.approve')->name('organizers.status');

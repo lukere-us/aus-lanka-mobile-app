@@ -87,3 +87,23 @@ Gate scan ─► UPDATE tickets SET status='used' WHERE id=? AND status='valid' 
 
 Inventory invariant: `quantity_sold + quantity_reserved ≤ quantity_total`, changed only by `InventoryService` under a row lock.
 Organizer data is always scoped through `OrganizerContext` (organizer_members); gate staff can scan only their organizer's events.
+
+## Movie rentals and playback (Milestone 4)
+
+```
+Admin (movies.manage): movie draft -> video asset (provider + id) -> rental packages (AUD price, watch hours,
+                       start-within days) -> publish (needs a ready video + an active package)
+Checkout {"type":"rental_package"} -> RentalPackageResolver (published? quantity 1? not already rented?)
+OrderPaid -> CreateRentalsForPaidOrder (queue: fulfillment) -> Rental(ready, activate_by = paid + N days), once per item
+POST /rentals/{id}/play -> PlaybackService: owner + account active + window check
+   first play: ready -> active, expires_at = now + watch_hours
+   -> VideoProvider.playbackUrl(asset, viewer, min(now + 10 min, rental end))   (link never outlives the rental)
+PUT /rentals/{id}/progress -> resume position per user + movie
+rentals:expire (every 5 min) + effectiveStatus() at read time: active past expires_at / ready past activate_by -> expired
+```
+
+Video hosting is behind `VideoProvider` (`config/video.php`). The `sample` provider issues our own HMAC-signed,
+expiring link (`/api/v1/dev/stream/{token}`) that redirects to a public test film, so the full flow can be tested
+before the client chooses Bunny Stream or Cloudflare Stream. With a real provider the CDN itself validates the
+signed token, so the video files are never reachable without one. DRM (Widevine/FairPlay) is a provider setting plus
+player configuration; not enabled until a licence requires it.

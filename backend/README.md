@@ -68,6 +68,12 @@ routes/api_v1.php        every v1 endpoint
 | GET | `/api/v1/admin/orders` | `orders.view` | Search orders by status, reference, email, dates |
 | GET | `/api/v1/currencies` | — | Currencies customers can pay in, with the rate per 1 AUD |
 | GET, PUT `/{code}` | `/api/v1/admin/currencies` | `settings.manage` | Add a currency, set its rate per 1 AUD, switch it on/off (audited) |
+| GET | `/api/v1/movies` | — | Published movies with rental options (`q`, `genre`, `language`) |
+| GET | `/api/v1/movies/{slug}` | — | One movie with rental packages |
+| GET | `/api/v1/rentals` · `/rentals/{id}` | token (renter) | My rental library: status, start-by, time left, resume position |
+| POST | `/api/v1/rentals/{id}/play` | token (renter) | Checks the rental, starts the window on first play, returns a 10-minute HLS link |
+| PUT | `/api/v1/rentals/{id}/progress` | token (renter) | Save playback position for resume |
+| GET/POST/PATCH | `/api/v1/admin/movies[...]` | `movies.manage` | Movies, video assets, rental packages, publish/unpublish |
 | GET | `/api/v1/events` | — | Upcoming published events (`q`, `category`, `city`, `from`, `to`) |
 | GET | `/api/v1/events/{slug}` | — | Event details with ticket types, price, availability |
 | POST | `/api/v1/organizer/apply` | customer | Apply to become an organizer (pending until approved) |
@@ -84,10 +90,18 @@ routes/api_v1.php        every v1 endpoint
 
 ### Try a purchase locally (fake gateway)
 
-Checkout sells event tickets: `{"items":[{"type":"ticket_type","id":1,"quantity":2}]}` (movie rentals arrive next).
+Checkout sells event tickets `{"type":"ticket_type","id":1,"quantity":2}` and movie rentals `{"type":"rental_package","id":1,"quantity":1}`.
 The flow: `POST /orders` → open `payment.checkout_url` and add `?outcome=succeeded` → the fake provider sends a
 signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,fulfillment,default`
 and `php artisan schedule:work` (expires unpaid orders after 15 minutes) alongside `php artisan serve`.
+
+### Watch the sample film (rental test)
+
+Double-click `scripts\try-sample-video.bat` (MySQL running in XAMPP). It loads a demo film, rents it as a demo
+customer through the real checkout (fake payment, server-side verification, rental, entitlement check) and opens a
+browser player on a 10-minute signed link. The film is Big Buck Bunny (Blender Foundation, CC BY 3.0).
+Same thing by hand: `php artisan db:seed --class=Database\Seeders\DemoContentSeeder`, `php artisan serve`,
+then `php artisan demo:rental-link` and open the printed link.
 
 ### Payments with Stripe
 

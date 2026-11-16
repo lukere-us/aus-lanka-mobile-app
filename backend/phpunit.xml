@@ -29,6 +29,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="MARKETPLACE_CURRENCY" value="AUD" force="true"/>
         <env name="PAYMENT_GATEWAY" value="fake" force="true"/>
+        <env name="VIDEO_PROVIDER" value="sample" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SUPER_ADMIN_EMAIL" value=""/>

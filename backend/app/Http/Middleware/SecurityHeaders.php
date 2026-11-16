@@ -16,7 +16,9 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('Referrer-Policy', 'no-referrer');
-        $response->headers->set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        if (! $response->headers->has('Content-Security-Policy')) { // a dev page may set its own
+            $response->headers->set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+        }
         $response->headers->set('Cache-Control', 'no-store, private');
         $response->headers->remove('X-Powered-By');
 
