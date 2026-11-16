@@ -16,9 +16,9 @@ exit /b %RC%
 :main
 set "PHP=php"
 where php >nul 2>nul || set "PHP=C:\xampp\php\php.exe"
-set "COMPOSER=composer"
-if exist "%ProgramData%\ComposerSetup\bin\composer.bat" set "COMPOSER=%ProgramData%\ComposerSetup\bin\composer.bat"
-call "%COMPOSER%" install --no-interaction --no-progress || exit /b 14
+set "COMPOSER_CMD=composer"
+if exist "%ProgramData%\ComposerSetup\bin\composer.bat" set "COMPOSER_CMD=%ProgramData%\ComposerSetup\bin\composer.bat"
+call "%COMPOSER_CMD%" install --no-interaction --no-progress || exit /b 14
 "%PHP%" artisan config:clear || exit /b 16
 "%PHP%" artisan migrate --force || exit /b 17
 "%PHP%" artisan db:seed --class=Database\Seeders\RolesAndPermissionsSeeder --force || exit /b 18
