@@ -28,6 +28,13 @@ echo == MySQL ==
 "%MYSQL%" -u root -e "CREATE DATABASE IF NOT EXISTS entertainment_marketplace CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS entertainment_marketplace_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" || exit /b 13
 
 echo == Composer ==
+set "COMPOSER_BAT="
+if exist "%ProgramData%\ComposerSetup\bin\composer.bat" set "COMPOSER_BAT=%ProgramData%\ComposerSetup\bin\composer.bat"
+if defined COMPOSER_BAT (
+  call "%COMPOSER_BAT%" --version
+  call "%COMPOSER_BAT%" install --no-interaction --no-progress || exit /b 14
+  goto :laravel
+)
 where composer >nul 2>nul
 if errorlevel 1 (
   if exist composer.phar (
@@ -41,6 +48,7 @@ if errorlevel 1 (
   call composer install --no-interaction --no-progress || exit /b 14
 )
 
+:laravel
 echo == Laravel ==
 if not exist .env copy .env.example .env
 "%PHP%" artisan key:generate --ansi || exit /b 16
