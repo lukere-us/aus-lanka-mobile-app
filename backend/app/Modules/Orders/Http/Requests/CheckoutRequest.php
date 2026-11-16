@@ -13,6 +13,7 @@ class CheckoutRequest extends FormRequest
             'items.*.type' => ['required', 'string', 'max:50'],
             'items.*.id' => ['required'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
+            'currency' => ['nullable', 'string', 'size:3'],
             'idempotency_key' => ['required', 'string', 'regex:/^[A-Za-z0-9\-_]{8,64}$/'],
         ];
     }

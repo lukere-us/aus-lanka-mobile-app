@@ -18,6 +18,7 @@ class PublicEventController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'category' => ['nullable', 'in:'.implode(',', EventRequest::CATEGORIES)],
             'city' => ['nullable', 'string', 'max:80'],
+            'country' => ['nullable', 'string', 'size:2'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
@@ -28,6 +29,7 @@ class PublicEventController extends Controller
             ->when($v['q'] ?? null, fn ($q, $s) => $q->where(fn ($q) => $q->where('title', 'like', "%{$s}%")->orWhere('description', 'like', "%{$s}%")))
             ->when($v['category'] ?? null, fn ($q, $c) => $q->where('category', $c))
             ->when($v['city'] ?? null, fn ($q, $c) => $q->whereHas('venue', fn ($vq) => $vq->where('city', $c)))
+            ->when($v['country'] ?? null, fn ($q, $c) => $q->whereHas('venue', fn ($vq) => $vq->where('country', strtoupper($c))))
             ->when($v['from'] ?? null, fn ($q, $d) => $q->where('starts_at', '>=', $d))
             ->when($v['to'] ?? null, fn ($q, $d) => $q->where('starts_at', '<=', $d))
             ->orderBy('starts_at')

@@ -26,7 +26,7 @@ class CheckoutTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.status', 'pending_payment')
-            ->assertJsonPath('data.total', ['amount' => '4500.00', 'currency' => 'LKR'])
+            ->assertJsonPath('data.total', ['amount' => '4500.00', 'currency' => 'AUD'])
             ->assertJsonPath('data.items.0.name', 'Test item #7')
             ->assertJsonPath('data.items.0.unit_price.amount', '1500.00')
             ->assertJsonPath('data.items.0.quantity', 3)

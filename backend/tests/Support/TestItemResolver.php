@@ -8,7 +8,7 @@ use App\Modules\Orders\Support\ResolvedItem;
 use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
-/** Stand-in for rental packages / ticket types until those modules exist. Price = LKR 1,500.00 (id 99 = sold out). */
+/** Stand-in for rental packages / ticket types until those modules exist. Price = AUD 1,500.00 (id 99 = sold out). */
 class TestItemResolver implements PurchasableResolver
 {
     public function resolve(int|string $id, int $quantity, User $buyer): ResolvedItem
@@ -17,6 +17,6 @@ class TestItemResolver implements PurchasableResolver
             throw ValidationException::withMessages(['items' => ['Sold out.']]);
         }
 
-        return new ResolvedItem("Test item #{$id}", Money::of('1500.00', 'LKR'), $quantity, metadata: ['test_id' => (int) $id]);
+        return new ResolvedItem("Test item #{$id}", Money::of('1500.00', 'AUD'), $quantity, metadata: ['test_id' => (int) $id]);
     }
 }

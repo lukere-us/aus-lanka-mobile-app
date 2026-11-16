@@ -25,7 +25,7 @@ trait BuildsEvents
         return $organizer;
     }
 
-    /** A published event 30 days out with one ticket type (price LKR 2,500, $stock tickets). */
+    /** A published event 30 days out with one ticket type (price AUD 2,500, $stock tickets). */
     protected function publishedEvent(int $stock = 100, ?Organizer $organizer = null, array $typeAttributes = []): TicketType
     {
         $organizer ??= $this->approvedOrganizer();
@@ -37,7 +37,7 @@ trait BuildsEvents
         ]);
 
         return $event->ticketTypes()->create(array_merge([
-            'name' => 'General', 'kind' => 'general', 'price' => '2500.00', 'currency' => 'LKR',
+            'name' => 'General', 'kind' => 'general', 'price' => '2500.00', 'currency' => 'AUD',
             'quantity_total' => $stock, 'max_per_order' => 10,
         ], $typeAttributes));
     }

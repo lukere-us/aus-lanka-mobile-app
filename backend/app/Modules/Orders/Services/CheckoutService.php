@@ -5,6 +5,7 @@ namespace App\Modules\Orders\Services;
 use App\Http\Responses\ApiException;
 use App\Models\User;
 use App\Modules\Audit\Services\AuditLogger;
+use App\Modules\Currencies\Services\CurrencyService;
 use App\Modules\Orders\Contracts\ReservesStock;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
@@ -25,33 +26,43 @@ class CheckoutService
         private readonly PurchasableRegistry $registry,
         private readonly PaymentService $payments,
         private readonly AuditLogger $audit,
+        private readonly CurrencyService $currencies,
     ) {}
 
     /**
      * Create an order + payment and open the provider checkout. Replaying the same Idempotency-Key with
      * the same items returns the original order instead of charging twice.
      *
+     * Prices are in the base currency (AUD). The customer pays in $currency; each unit price is converted at
+     * the admin-set rate, and that rate plus the base amounts are stored on the order (locked).
+     *
      * @param  list<array{type: string, id: int|string, quantity: int}>  $items
      * @return array{0: Order, 1: bool} [order, created]
      */
-    public function checkout(User $buyer, array $items, string $idempotencyKey): array
+    public function checkout(User $buyer, array $items, string $idempotencyKey, ?string $currencyCode = null): array
     {
-        $hash = hash('sha256', json_encode(array_map(
+        $baseCode = $this->currencies->baseCode();
+        $chargeCurrency = $this->currencies->payable($currencyCode ?? $baseCode);
+        $hash = hash('sha256', json_encode([$chargeCurrency->code, array_map(
             fn ($i) => [$i['type'], (string) $i['id'], (int) $i['quantity']], $items,
-        )));
+        )]));
 
         if ($existing = $this->findByKey($buyer, $idempotencyKey, $hash)) {
             return [$existing, false];
         }
 
         $resolved = $this->resolve($buyer, $items);
-        $currency = config('marketplace.currency');
+        $currency = $chargeCurrency->code;
         $subtotal = Money::ofMinor(0, $currency);
+        $baseTotal = Money::ofMinor(0, $baseCode);
+        $unitPrices = [];
         foreach ($resolved as $index => $item) {
-            if ($item->unitPrice->currency !== $currency) {
-                throw ValidationException::withMessages(["items.$index" => ["Only {$currency} prices can be checked out."]]);
+            if ($item->unitPrice->currency !== $baseCode) {
+                throw ValidationException::withMessages(["items.$index" => ["Prices must be set in {$baseCode}."]]);
             }
-            $subtotal = $subtotal->add($item->lineTotal());
+            $unitPrices[$index] = $this->currencies->fromBase($item->unitPrice, $chargeCurrency);
+            $subtotal = $subtotal->add($unitPrices[$index]->multiply($item->quantity));
+            $baseTotal = $baseTotal->add($item->lineTotal());
         }
         // Service fees and discounts plug in here (D07, D08); zero for now.
         $fees = Money::ofMinor(0, $currency);
@@ -59,12 +70,15 @@ class CheckoutService
         $total = $subtotal->add($fees)->subtract($discount);
 
         try {
-            [$order, $payment] = DB::transaction(function () use ($buyer, $items, $resolved, $idempotencyKey, $hash, $subtotal, $fees, $discount, $total, $currency) {
+            [$order, $payment] = DB::transaction(function () use ($buyer, $items, $resolved, $unitPrices, $idempotencyKey, $hash, $subtotal, $fees, $discount, $total, $currency, $baseTotal, $chargeCurrency) {
                 $order = Order::create([
                     'reference' => OrderReference::generate(),
                     'user_id' => $buyer->id,
                     'status' => OrderStatus::PendingPayment,
                     'currency' => $currency,
+                    'base_currency' => $baseTotal->currency,
+                    'exchange_rate' => $chargeCurrency->is_base ? '1' : (string) $chargeCurrency->rate_per_base,
+                    'base_total' => $baseTotal->toDecimal(),
                     'subtotal' => $subtotal->toDecimal(),
                     'fee_total' => $fees->toDecimal(),
                     'discount_total' => $discount->toDecimal(),
@@ -80,10 +94,11 @@ class CheckoutService
                         'purchasable_type' => $item->purchasable?->getMorphClass(),
                         'purchasable_id' => $item->purchasable?->getKey(),
                         'name' => $item->name,
-                        'unit_price' => $item->unitPrice->toDecimal(),
+                        'unit_price' => $unitPrices[$index]->toDecimal(),
+                        'base_unit_price' => $item->unitPrice->toDecimal(),
                         'quantity' => $item->quantity,
-                        'line_total' => $item->lineTotal()->toDecimal(),
-                        'currency' => $item->unitPrice->currency,
+                        'line_total' => $unitPrices[$index]->multiply($item->quantity)->toDecimal(),
+                        'currency' => $currency,
                         'metadata' => $item->metadata ?: null,
                     ]);
 

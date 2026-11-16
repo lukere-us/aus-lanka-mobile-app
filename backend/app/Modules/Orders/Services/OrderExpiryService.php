@@ -6,6 +6,7 @@ use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Events\OrderExpired;
 use App\Modules\Orders\Models\Order;
+use App\Modules\Payments\Services\PaymentGatewayManager;
 use App\Modules\Payments\Services\PaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,7 +14,11 @@ use Throwable;
 
 class OrderExpiryService
 {
-    public function __construct(private readonly PaymentService $payments, private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly AuditLogger $audit,
+        private readonly PaymentGatewayManager $gateways,
+    ) {}
 
     /** Expire unpaid orders past their hold time. Checks the provider first so a late payment is never lost. */
     public function expireDue(int $limit = 500): int
@@ -51,6 +56,14 @@ class OrderExpiryService
                 return true;
             });
             $expired += (int) $didExpire;
+
+            if ($didExpire && $order->latestPayment?->provider_reference) {
+                try {
+                    $this->gateways->driver($order->latestPayment->provider)->cancelCheckout($order->latestPayment);
+                } catch (Throwable $e) {
+                    Log::info('Could not close provider checkout after expiry', ['order' => $order->reference, 'error' => $e->getMessage()]);
+                }
+            }
         }
 
         return $expired;

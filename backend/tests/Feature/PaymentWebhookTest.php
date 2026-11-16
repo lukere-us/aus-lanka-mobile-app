@@ -79,7 +79,7 @@ class PaymentWebhookTest extends TestCase
     public function test_amount_mismatch_is_held_for_review_and_not_fulfilled(): void
     {
         Event::fake([OrderPaid::class]);
-        $order = $this->placeOrder(); // total LKR 3000.00
+        $order = $this->placeOrder(); // total AUD 3000.00
 
         $this->providerSends($order, 'succeeded', amount: '30.00')->assertOk();
 

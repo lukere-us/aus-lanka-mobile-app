@@ -12,8 +12,8 @@ class RegisterRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'string', 'email:rfc', 'max:255', 'unique:users,email'],
-            // Sri Lankan numbers in E.164, e.g. +94771234567
-            'phone' => ['nullable', 'string', 'regex:/^\+94\d{9}$/', 'unique:users,phone'],
+            // International E.164, e.g. +61412345678 (AU), +94771234567 (LK)
+            'phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/', 'unique:users,phone'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'device_name' => ['required', 'string', 'max:100'],
         ];
@@ -21,7 +21,7 @@ class RegisterRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['phone.regex' => 'Enter a Sri Lankan mobile number in the format +94XXXXXXXXX.'];
+        return ['phone.regex' => 'Enter the mobile number in international format, e.g. +61412345678.'];
     }
 
     protected function prepareForValidation(): void

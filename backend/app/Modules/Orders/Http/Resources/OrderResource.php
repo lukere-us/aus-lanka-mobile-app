@@ -23,6 +23,10 @@ class OrderResource extends JsonResource
             'discount_total' => $money($this->discount_total),
             'fee_total' => $money($this->fee_total),
             'total' => $money($this->total),
+            'exchange_rate' => $this->currency === $this->base_currency ? null : [
+                'base_currency' => $this->base_currency, 'rate' => $this->exchange_rate,
+                'base_total' => Money::of($this->base_total, $this->base_currency)->toArray(),
+            ],
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
                 'type' => $item->item_type,
                 'name' => $item->name,

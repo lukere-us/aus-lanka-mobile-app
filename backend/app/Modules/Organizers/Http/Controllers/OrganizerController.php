@@ -23,7 +23,7 @@ class OrganizerController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:150'],
             'contact_email' => ['required', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'regex:/^\+94\d{9}$/'],
+            'contact_phone' => ['nullable', 'string', 'regex:/^\+[1-9]\d{7,14}$/'],
             'business_registration_no' => ['nullable', 'string', 'max:50'],
         ]);
 

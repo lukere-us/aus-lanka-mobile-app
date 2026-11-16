@@ -51,7 +51,7 @@ class OrganizerEventTest extends TestCase
     {
         $organizer = $this->approvedOrganizer();
         $owner = $organizer->owner;
-        $venue = Venue::create(['name' => 'Galle Fort Hall', 'address' => 'Galle Fort', 'city' => 'Galle']);
+        $venue = Venue::create(['name' => 'Melbourne Recital Centre', 'address' => '31 Sturt St, Southbank', 'city' => 'Melbourne', 'country' => 'AU', 'timezone' => 'Australia/Melbourne']);
 
         $eventId = $this->actingAs($owner)->postJson('/api/v1/organizer/events', $this->eventPayload($venue))
             ->assertCreated()->assertJsonPath('data.status', 'draft')->json('data.id');
@@ -61,7 +61,7 @@ class OrganizerEventTest extends TestCase
 
         $this->actingAs($owner)->postJson("/api/v1/organizer/events/{$eventId}/ticket-types", [
             'name' => 'VIP', 'kind' => 'vip', 'price' => '7500.00', 'quantity_total' => 50,
-        ])->assertCreated()->assertJsonPath('data.price', ['amount' => '7500.00', 'currency' => 'LKR']);
+        ])->assertCreated()->assertJsonPath('data.price', ['amount' => '7500.00', 'currency' => 'AUD']);
 
         $this->actingAs($owner)->postJson("/api/v1/organizer/events/{$eventId}/submit")->assertOk()->assertJsonPath('data.status', 'pending_review');
         $this->getJson('/api/v1/events')->assertOk()->assertJsonCount(0, 'data');
@@ -70,10 +70,11 @@ class OrganizerEventTest extends TestCase
             ->assertOk()->assertJsonPath('data.status', 'published');
 
         $slug = Event::find($eventId)->slug;
-        $this->getJson('/api/v1/events?city=Galle&category=concert')->assertOk()->assertJsonPath('data.0.slug', $slug)
+        $this->getJson('/api/v1/events?city=Melbourne&country=au&category=concert')->assertOk()->assertJsonPath('data.0.slug', $slug)
             ->assertJsonPath('data.0.ticket_types.0.sale_state', 'on_sale')
             ->assertJsonMissingPath('data.0.ticket_types.0.quantity_sold');
-        $this->getJson("/api/v1/events/{$slug}")->assertOk()->assertJsonPath('data.venue.city', 'Galle');
+        $this->getJson("/api/v1/events/{$slug}")->assertOk()->assertJsonPath('data.venue.city', 'Melbourne')
+            ->assertJsonPath('data.venue.timezone', 'Australia/Melbourne');
     }
 
     public function test_unapproved_organizer_cannot_submit_for_publication(): void

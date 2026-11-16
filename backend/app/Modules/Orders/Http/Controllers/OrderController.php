@@ -23,6 +23,7 @@ class OrderController extends Controller
             $request->user(),
             array_values($request->validated('items')),
             $request->validated('idempotency_key'),
+            $request->validated('currency'),
         );
 
         return (new OrderResource($order))->response()->setStatusCode($created ? 201 : 200);
@@ -53,7 +54,11 @@ class OrderController extends Controller
     {
         $order = $this->ownOrder($request, $reference);
         if ($order->latestPayment) {
-            $this->payments->verify($order->latestPayment, 'customer_return');
+            try {
+                $this->payments->verify($order->latestPayment, 'customer_return');
+            } catch (\Throwable $e) {
+                report($e); // provider unreachable: show current status; the webhook will still settle it
+            }
         }
 
         return new OrderResource($order->fresh(['items', 'latestPayment']));

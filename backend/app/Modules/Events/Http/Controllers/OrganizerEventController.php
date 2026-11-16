@@ -72,12 +72,14 @@ class OrganizerEventController extends Controller
             'name' => ['required', 'string', 'max:150'],
             'address' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:80'],
-            'latitude' => ['nullable', 'numeric', 'between:5.5,10.1'],   // Sri Lanka
-            'longitude' => ['nullable', 'numeric', 'between:79.4,82.1'],
+            'country' => ['required', 'string', 'size:2', 'alpha'],
+            'timezone' => ['required', 'timezone:all'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'capacity' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        return response()->json(['data' => Venue::create($data + ['organizer_id' => $organizer->id])], 201);
+        return response()->json(['data' => Venue::create(['country' => strtoupper($data['country'])] + $data + ['organizer_id' => $organizer->id])], 201);
     }
 
     public function venues(Request $request): JsonResponse

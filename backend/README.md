@@ -58,7 +58,7 @@ routes/api_v1.php        every v1 endpoint
 | GET | `/api/v1/admin/users/{id}` | `users.view` | One user |
 | PUT | `/api/v1/admin/users/{id}/roles` | `roles.assign` | Replace a user's roles (audited) |
 | PATCH | `/api/v1/admin/users/{id}/status` | `users.manage` | Suspend / reactivate (audited, revokes tokens) |
-| POST | `/api/v1/orders` | `customer.purchase` + `Idempotency-Key` header | Checkout: order + payment, returns `payment.checkout_url` |
+| POST | `/api/v1/orders` | `customer.purchase` + `Idempotency-Key` header | Checkout (optional `currency`, default AUD): order + payment, returns `payment.checkout_url` |
 | GET | `/api/v1/orders` | token | My orders / purchase history |
 | GET | `/api/v1/orders/{reference}` | token (owner) | One order with items and payment status |
 | POST | `/api/v1/orders/{reference}/verify-payment` | token (owner) | After returning from checkout: server asks the provider |
@@ -66,6 +66,8 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/payments/webhooks/{provider}` | provider signature | Payment notifications (stored once, processed on the `payments` queue) |
 | GET | `/api/v1/dev/fake-gateway/{ref}?outcome=succeeded` | — (not in production) | Fake provider checkout page for local testing |
 | GET | `/api/v1/admin/orders` | `orders.view` | Search orders by status, reference, email, dates |
+| GET | `/api/v1/currencies` | — | Currencies customers can pay in, with the rate per 1 AUD |
+| GET, PUT `/{code}` | `/api/v1/admin/currencies` | `settings.manage` | Add a currency, set its rate per 1 AUD, switch it on/off (audited) |
 | GET | `/api/v1/events` | — | Upcoming published events (`q`, `category`, `city`, `from`, `to`) |
 | GET | `/api/v1/events/{slug}` | — | Event details with ticket types, price, availability |
 | POST | `/api/v1/organizer/apply` | customer | Apply to become an organizer (pending until approved) |
@@ -86,6 +88,21 @@ Checkout sells event tickets: `{"items":[{"type":"ticket_type","id":1,"quantity"
 The flow: `POST /orders` → open `payment.checkout_url` and add `?outcome=succeeded` → the fake provider sends a
 signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,fulfillment,default`
 and `php artisan schedule:work` (expires unpaid orders after 15 minutes) alongside `php artisan serve`.
+
+### Payments with Stripe
+
+Prices are set in **AUD** (base currency). Customers can pay in any currency an admin has switched on
+(AUD, USD and LKR to start; USD and LKR need a rate first: `PUT /api/v1/admin/currencies/USD {"rate_per_base":"0.65","is_active":true}`).
+
+To use Stripe instead of the fake gateway, in `.env`:
+```
+PAYMENT_GATEWAY=stripe
+STRIPE_SECRET_KEY=sk_test_...        # Stripe Dashboard > Developers > API keys (test mode)
+STRIPE_WEBHOOK_SECRET=whsec_...      # from the webhook endpoint (or `stripe listen` locally)
+```
+Webhook endpoint: `https://<your-api>/api/v1/payments/webhooks/stripe`, events `checkout.session.completed`,
+`checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`.
+Locally, the Stripe CLI forwards them: `stripe listen --forward-to localhost:8000/api/v1/payments/webhooks/stripe`.
 
 Auth endpoints are limited to 5 attempts per minute per email+IP; other API calls to 120/min per user.
 

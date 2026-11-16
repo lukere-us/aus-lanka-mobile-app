@@ -33,9 +33,19 @@ Rule: a module never writes another module's tables directly; it calls that modu
 
 ## Payments (Milestone 2)
 
-Gateway not chosen yet (PayHere / WEBXPAY under evaluation). Code targets the `PaymentGateway` interface
-(`createCheckout`, `parseWebhook`, `fetchStatus`); `FakeGateway` behaves like a real provider for development and
-tests. A real adapter = one class + a `config/payments.php` entry.
+Gateway: **Stripe Checkout** (cards, Apple Pay, Google Pay), decided 16 Nov 2026. Code targets the `PaymentGateway`
+interface (`createCheckout`, `parseWebhook`, `fetchStatus`, `cancelCheckout`); `StripeGateway` calls Stripe's REST API
+directly, `FakeGateway` stands in for local work without keys. Stripe webhooks must send `checkout.session.completed`,
+`checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired` to
+`/api/v1/payments/webhooks/stripe`.
+
+## Market and currencies
+
+Run from Australia, sold worldwide. **Base currency AUD**: every price is set in AUD and payouts/reports use AUD.
+Admins manage payable currencies (AUD, USD, LKR to start) and their rate per 1 AUD. At checkout the customer picks
+a currency; prices are converted, and the rate plus the AUD amounts are locked into the order (`exchange_rate`,
+`base_total`, `order_items.base_unit_price`). Venues carry `country` + IANA `timezone`; event times are stored UTC and
+returned with `starts_at_local` in the venue's zone. Phone numbers are international E.164.
 
 ```
 App: POST /orders (Idempotency-Key) ──► Order(pending_payment) + OrderItems(snapshot) + Payment(initiated)

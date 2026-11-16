@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Order extends Model
 {
     protected $fillable = [
-        'reference', 'user_id', 'status', 'currency', 'subtotal', 'discount_total', 'fee_total', 'total',
+        'reference', 'user_id', 'status', 'currency', 'base_currency', 'exchange_rate', 'base_total', 'subtotal', 'discount_total', 'fee_total', 'total',
         'idempotency_key', 'request_hash', 'expires_at', 'paid_at', 'cancelled_at',
     ];
 
@@ -27,6 +27,8 @@ class Order extends Model
             'discount_total' => 'decimal:2',
             'fee_total' => 'decimal:2',
             'total' => 'decimal:2',
+            'base_total' => 'decimal:2',
+            'exchange_rate' => 'decimal:8',
             'expires_at' => 'datetime',
             'paid_at' => 'datetime',
             'cancelled_at' => 'datetime',

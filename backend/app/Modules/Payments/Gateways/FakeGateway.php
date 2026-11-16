@@ -66,6 +66,15 @@ class FakeGateway implements PaymentGateway
         return new GatewayStatus($state['status'], Money::of($state['amount'], $state['currency']), $state['reason'] ?? null);
     }
 
+    public function cancelCheckout(Payment $payment): void
+    {
+        $key = $this->key((string) $payment->provider_reference);
+        if (($state = $this->cache->get($key)) && $state['status'] === GatewayStatus::PENDING) {
+            $state['status'] = GatewayStatus::CANCELLED;
+            $this->cache->put($key, $state, now()->addDay());
+        }
+    }
+
     /**
      * Simulate the customer finishing checkout at the provider. Returns the signed webhook the provider
      * would send: ['body' => string, 'headers' => array].
@@ -74,7 +83,7 @@ class FakeGateway implements PaymentGateway
      */
     public function simulate(string $reference, string $status, ?string $amount = null, ?string $eventId = null): array
     {
-        $state = $this->cache->get($this->key($reference)) ?? ['amount' => $amount ?? '0.00', 'currency' => 'LKR'];
+        $state = $this->cache->get($this->key($reference)) ?? ['amount' => $amount ?? '0.00', 'currency' => 'AUD'];
         $state['status'] = $status;
         if ($amount !== null) {
             $state['amount'] = $amount;

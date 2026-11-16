@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Modules\Admin\Http\Controllers\UserManagementController;
+use App\Modules\Currencies\Http\Controllers\CurrencyController;
 use App\Modules\Events\Http\Controllers\AdminEventController;
 use App\Modules\Events\Http\Controllers\OrganizerEventController;
 use App\Modules\Events\Http\Controllers\PublicEventController;
@@ -32,6 +33,9 @@ Route::prefix('auth')->name('auth.')->group(function () {
         Route::post('logout', [AuthController::class, 'logout'])->name('logout');
     });
 });
+
+// --- Currencies customers can pay in (AUD base) ---------------------------------------
+Route::get('currencies', [CurrencyController::class, 'index'])->name('currencies.index');
 
 // --- Public event discovery (F02) -------------------------------------------------
 Route::get('events', [PublicEventController::class, 'index'])->name('events.index');
@@ -95,6 +99,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('orders', [AdminOrderController::class, 'index'])->middleware('permission:orders.view')->name('orders.index');
         Route::get('orders/{reference}', [AdminOrderController::class, 'show'])->middleware('permission:orders.view')->name('orders.show');
+
+        Route::get('currencies', [CurrencyController::class, 'adminIndex'])->middleware('permission:settings.manage')->name('currencies.index');
+        Route::put('currencies/{code}', [CurrencyController::class, 'upsert'])->middleware('permission:settings.manage')->where('code', '[A-Za-z]{3}')->name('currencies.upsert');
 
         Route::get('organizers', [AdminOrganizerController::class, 'index'])->middleware('permission:organizers.approve')->name('organizers.index');
         Route::patch('organizers/{organizer}/status', [AdminOrganizerController::class, 'updateStatus'])->middleware('permission:organizers.approve')->name('organizers.status');

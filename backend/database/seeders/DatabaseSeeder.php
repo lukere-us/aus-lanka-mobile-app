@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(ReferenceDataSeeder::class);
 
         $email = config('marketplace.super_admin.email');
         $password = config('marketplace.super_admin.password');

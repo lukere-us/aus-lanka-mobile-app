@@ -21,12 +21,12 @@ final class Money
         [$whole, $fraction] = array_pad(explode('.', ltrim($amount, '-')), 2, '0');
         $minor = (int) $whole * 100 + (int) str_pad($fraction, 2, '0');
 
-        return new self(str_starts_with($amount, '-') ? -$minor : $minor, strtoupper($currency ?? config('marketplace.currency', 'LKR')));
+        return new self(str_starts_with($amount, '-') ? -$minor : $minor, strtoupper($currency ?? config('marketplace.currency', 'AUD')));
     }
 
     public static function ofMinor(int $minor, ?string $currency = null): self
     {
-        return new self($minor, strtoupper($currency ?? config('marketplace.currency', 'LKR')));
+        return new self($minor, strtoupper($currency ?? config('marketplace.currency', 'AUD')));
     }
 
     public function add(self $other): self
@@ -52,6 +52,26 @@ final class Money
     public function percentage(int $basisPoints): self
     {
         return new self(intdiv($this->minor * $basisPoints + ($this->minor >= 0 ? 5000 : -5000), 10000), $this->currency);
+    }
+
+    /**
+     * Convert at a rate given as a decimal string with up to 8 places (units of $to per 1 unit of this currency),
+     * rounding half up to the nearest minor unit. Integer arithmetic only.
+     */
+    public function convert(string $rate, string $to): self
+    {
+        if (! preg_match('/^(\d+)(?:\.(\d{1,8}))?$/', $rate, $m) || (int) $m[1] === 0 && (int) ($m[2] ?? 0) === 0) {
+            throw new InvalidArgumentException("Invalid exchange rate [$rate].");
+        }
+        $abs = abs($this->minor);
+        if ($abs > 10_000_000_000) {
+            throw new InvalidArgumentException('Amount too large to convert safely.');
+        }
+        $whole = (int) $m[1];
+        $fraction = (int) str_pad($m[2] ?? '0', 8, '0');   // rate = whole + fraction / 1e8
+        $converted = $abs * $whole + intdiv($abs * $fraction * 2 + 100_000_000, 200_000_000);
+
+        return new self($this->minor < 0 ? -$converted : $converted, strtoupper($to));
     }
 
     /** Decimal string for DECIMAL(12,2) columns and API payloads, e.g. "1500.00". */

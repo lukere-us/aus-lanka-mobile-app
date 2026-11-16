@@ -31,4 +31,7 @@ interface PaymentGateway
 
     /** Ask the provider, server to server, what really happened to this payment. */
     public function fetchStatus(Payment $payment): GatewayStatus;
+
+    /** Close the provider's checkout page (our order expired first). Best effort. */
+    public function cancelCheckout(Payment $payment): void;
 }

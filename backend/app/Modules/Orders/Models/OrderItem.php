@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class OrderItem extends Model
 {
     protected $fillable = [
-        'order_id', 'item_type', 'purchasable_type', 'purchasable_id', 'name', 'unit_price', 'quantity', 'line_total',
+        'order_id', 'item_type', 'purchasable_type', 'purchasable_id', 'name', 'unit_price', 'base_unit_price', 'quantity', 'line_total',
         'currency', 'metadata',
     ];
 
@@ -18,6 +18,7 @@ class OrderItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'base_unit_price' => 'decimal:2',
             'line_total' => 'decimal:2',
             'quantity' => 'integer',
             'metadata' => 'array',
