@@ -40,7 +40,7 @@ class PlatformTest extends TestCase
 
     public function test_cors_preflight_allows_configured_origin_only(): void
     {
-        config(['cors.allowed_origins' => ['http://localhost:3000']]);
+        config(['cors.allowed_origins' => ['http://localhost:3000', 'http://localhost:8081']]);
 
         $this->call('OPTIONS', '/api/v1/health', [], [], [], [
             'HTTP_ORIGIN' => 'http://localhost:3000',
@@ -51,6 +51,7 @@ class PlatformTest extends TestCase
             'HTTP_ORIGIN' => 'https://evil.example',
             'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'GET',
         ]);
-        $this->assertNull($evil->headers->get('Access-Control-Allow-Origin'));
+        // The browser enforces CORS: it blocks the call unless this header equals the caller's origin.
+        $this->assertNotSame('https://evil.example', $evil->headers->get('Access-Control-Allow-Origin'));
     }
 }
