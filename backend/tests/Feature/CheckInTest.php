@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Modules\EventOps\Models\EventStaff;
 use App\Modules\Events\Models\TicketType;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Orders\Models\Order;
@@ -28,6 +29,7 @@ class CheckInTest extends TestCase
         $this->type = $this->publishedEvent();
         $this->gate = $this->userWithRole(Role::GATE_STAFF);
         $this->type->event->organizer->members()->attach($this->gate->id, ['role' => Organizer::ROLE_GATE_STAFF]);
+        EventStaff::create(['event_id' => $this->type->event_id, 'user_id' => $this->gate->id]); // assigned to this event (G01)
 
         $ref = $this->buyTickets($this->type, 2)->json('data.reference');
         $order = Order::where('reference', $ref)->with('latestPayment')->first();
@@ -57,6 +59,7 @@ class CheckInTest extends TestCase
         $this->scan('TK1.not-a-real-ticket-000000000000000')->assertNotFound()->assertJsonPath('error.code', 'ticket_not_found');
 
         $otherEvent = $this->publishedEvent(organizer: $this->type->event->organizer);
+        EventStaff::create(['event_id' => $otherEvent->event_id, 'user_id' => $this->gate->id]);
         $this->scan(Ticket::first()->qr_token, $otherEvent->event_id)->assertStatus(409)->assertJsonPath('error.code', 'wrong_event');
 
         $cancelled = Ticket::skip(1)->first();

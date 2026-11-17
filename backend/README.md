@@ -103,6 +103,14 @@ routes/api_v1.php        every v1 endpoint
 | GET, POST `/{id}/review` | `/api/v1/admin/events` | `events.approve` | Approve or reject events awaiting review |
 | GET | `/api/v1/tickets`, `/api/v1/tickets/{id}` | token (holder) | Ticket wallet with QR value |
 | POST | `/api/v1/scanner/check-in` | `scanner.checkin` (assigned organizer) | Scan `{qr, event_id}`: admitted once, then `ticket_already_used` |
+| GET | `/api/v1/scanner/events` · `/scanner/events/{id}/stats` | scanner staff | Events I can scan (with my gate) and live entry numbers |
+| POST | `/api/v1/scanner/devices` | scanner staff | Register this phone/tablet as a scanning device |
+| POST | `/api/v1/scanner/check-in` | assigned staff | Now also takes `gate_id` and `device_id`; every attempt is logged |
+| GET, POST, DELETE | `/api/v1/organizer/events/{id}/gates`, `/staff` | `organizer.events.manage` | Gates and which gate staff work which event/gate |
+| GET | `/api/v1/organizer/events/{id}/attendees[.csv]` | `organizer.attendees.view` | Attendee list / CSV (partly hidden emails) |
+| GET | `/api/v1/organizer/events/{id}/sales`, `/stats`, `/scans` | `organizer.events.manage` | Sales and money, live entry stats, scan log |
+| POST | `/api/v1/organizer/events/{id}/tickets/{ticket}/admit`, `/undo-check-in` | `organizer.events.manage` | Gate exceptions with a reason (audited) |
+| GET, POST | `/api/v1/organizer/devices`, `/devices/{id}/revoke` | `organizer.events.manage` | Scanning devices; revoke a lost one |
 
 ### Try a purchase locally (fake gateway)
 

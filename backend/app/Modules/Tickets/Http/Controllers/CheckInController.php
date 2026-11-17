@@ -14,9 +14,12 @@ class CheckInController extends Controller
         $v = $request->validate([
             'qr' => ['required', 'string', 'max:64'],
             'event_id' => ['required', 'integer'],
+            'gate_id' => ['nullable', 'integer'],
+            'device_id' => ['nullable', 'integer'],
         ]);
 
-        $ticket = $checkIns->checkIn($request->user(), $v['qr'], (int) $v['event_id'])->load(['ticketType', 'holder']);
+        $ticket = $checkIns->checkIn($request->user(), $v['qr'], (int) $v['event_id'], $v['gate_id'] ?? null, $v['device_id'] ?? null)
+            ->load(['ticketType', 'holder']);
 
         return response()->json(['data' => [
             'result' => 'admitted',

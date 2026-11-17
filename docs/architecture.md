@@ -158,3 +158,17 @@ by email where noted. Queued on `notifications`, sent after the transaction comm
 Push uses Firebase Cloud Messaging HTTP v1 (`PUSH_DRIVER=fcm`, service-account JSON in `FCM_CREDENTIALS`); until then
 `PUSH_DRIVER=log` writes pushes to `storage/logs`. Tokens Firebase reports as unregistered are deleted. The user's
 `notification_prefs.push = false` stops pushes (inbox still fills). Scheduler: `notifications:reminders` every 15 min.
+
+## Event-day operations (F09, G01, G04)
+
+- Organizers define **gates** per event and **assign gate staff** to an event (optionally pinned to one gate). Gate staff
+  can scan only at events they are assigned to, and only at their gate; owners/managers can scan anywhere at their own
+  events; admins anywhere. Removing an assignment takes effect on the next scan.
+- **Scanner devices** register per organizer (`/scanner/devices`); a lost device is revoked from the organizer portal and
+  its scans are refused. The scanner app lists the events I can scan from 18 h ago to 7 days ahead, with my gate.
+- **Scan log** (`ticket_scans`): every attempt (admitted, already used, wrong event, not valid, not found, manual admit,
+  undo) with gate, staff and device; never the QR value. **Live stats**: issued, checked in, still to arrive, last 15 min,
+  per ticket type, per gate, rejected scans by reason.
+- **Gate exceptions**: manual admit (e.g. dead phone) and undo check-in, each needs a reason and is audited.
+- **Attendee list** + CSV export (name, partly hidden email, ticket type, status, check-in time, order) and **sales
+  summary** (stock per ticket type, gross, refunds, commission, net to organizer).

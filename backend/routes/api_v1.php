@@ -3,6 +3,8 @@
 use App\Http\Controllers\HealthController;
 use App\Modules\Admin\Http\Controllers\UserManagementController;
 use App\Modules\Currencies\Http\Controllers\CurrencyController;
+use App\Modules\EventOps\Http\Controllers\OrganizerOpsController;
+use App\Modules\EventOps\Http\Controllers\ScannerController;
 use App\Modules\Events\Http\Controllers\AdminEventController;
 use App\Modules\Events\Http\Controllers\OrganizerEventController;
 use App\Modules\Events\Http\Controllers\PublicEventController;
@@ -111,6 +113,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('tickets/{ticket}', [WalletController::class, 'show'])->name('tickets.show');
 
     // --- Gate scanner (G03) ---------------------------------------------------------------
+    Route::middleware('permission:scanner.checkin|events.manage')->prefix('scanner')->name('scanner.')->group(function () {
+        Route::get('events', [ScannerController::class, 'events'])->name('events');
+        Route::get('events/{event}/stats', [ScannerController::class, 'stats'])->whereNumber('event')->name('events.stats');
+        Route::post('devices', [ScannerController::class, 'registerDevice'])->name('devices.store');
+    });
     Route::post('scanner/check-in', CheckInController::class)->middleware(['permission:scanner.checkin|events.manage', 'throttle:scanner'])->name('scanner.check-in');
 
     // --- Organizer portal (C05, F01, F03) ------------------------------------------------
@@ -133,6 +140,25 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('events/{event}/submit', [OrganizerEventController::class, 'submit'])->whereNumber('event')->name('events.submit');
             Route::post('events/{event}/ticket-types', [OrganizerEventController::class, 'storeTicketType'])->whereNumber('event')->name('ticket-types.store');
             Route::patch('events/{event}/ticket-types/{ticketType}', [OrganizerEventController::class, 'updateTicketType'])->whereNumber(['event', 'ticketType'])->name('ticket-types.update');
+
+            // Event day operations (F09, G01, G04)
+            Route::whereNumber(['event', 'gate', 'user', 'ticket'])->prefix('events/{event}')->name('events.')->group(function () {
+                Route::get('gates', [OrganizerOpsController::class, 'gates'])->name('gates.index');
+                Route::post('gates', [OrganizerOpsController::class, 'addGate'])->name('gates.store');
+                Route::delete('gates/{gate}', [OrganizerOpsController::class, 'removeGate'])->name('gates.destroy');
+                Route::get('staff', [OrganizerOpsController::class, 'staff'])->name('staff.index');
+                Route::post('staff', [OrganizerOpsController::class, 'assignStaff'])->name('staff.store');
+                Route::delete('staff/{user}', [OrganizerOpsController::class, 'unassignStaff'])->name('staff.destroy');
+                Route::get('attendees', [OrganizerOpsController::class, 'attendees'])->middleware('permission:organizer.attendees.view')->name('attendees');
+                Route::get('attendees.csv', [OrganizerOpsController::class, 'attendeesCsv'])->middleware('permission:organizer.attendees.view')->name('attendees.csv');
+                Route::get('sales', [OrganizerOpsController::class, 'sales'])->name('sales');
+                Route::get('stats', [OrganizerOpsController::class, 'stats'])->name('stats');
+                Route::get('scans', [OrganizerOpsController::class, 'scans'])->name('scans');
+                Route::post('tickets/{ticket}/admit', [OrganizerOpsController::class, 'admit'])->name('tickets.admit');
+                Route::post('tickets/{ticket}/undo-check-in', [OrganizerOpsController::class, 'undo'])->name('tickets.undo');
+            });
+            Route::get('devices', [OrganizerOpsController::class, 'devices'])->name('devices.index');
+            Route::post('devices/{device}/revoke', [OrganizerOpsController::class, 'revokeDevice'])->whereNumber('device')->name('devices.revoke');
         });
     });
 
