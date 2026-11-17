@@ -201,8 +201,8 @@ class NotificationTest extends TestCase
 
     public function test_fcm_sender_authenticates_with_a_service_account_and_detects_dead_tokens(): void
     {
-        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        openssl_pkey_export($key, $pem);
+        // Throwaway key used only by this test (generating keys at runtime fails on XAMPP without openssl.cnf).
+        $pem = file_get_contents(base_path('tests/Fixtures/fcm-test-private-key.pem'));
         $path = tempnam(sys_get_temp_dir(), 'fcm');
         file_put_contents($path, json_encode(['project_id' => 'aus-lanka-test', 'client_email' => 'push@aus-lanka-test.iam.gserviceaccount.com',
             'private_key' => $pem, 'token_uri' => 'https://oauth2.googleapis.com/token']));
