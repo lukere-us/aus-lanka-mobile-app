@@ -126,3 +126,15 @@ Refund request (customer, policy-checked) | staff refund (no policy, optional fe
     pending   -> refunds:sync (every 10 min) settles it later
 Balance = SUM(ledger); available = entries for events started >= hold days ago, minus payouts; payout <= available
 ```
+
+## Customer accounts (C02, C04)
+
+- Email verification by 6-digit code, sent at registration and after an email change; **a verified email is required to buy**.
+  Phone verification by SMS code (log driver until an SMS provider is chosen). Codes: keyed hash only, 10-minute expiry,
+  5 guesses, 60-second resend cooldown, newest code only. In APP_ENV=local the API also returns `debug_code`.
+- `/me`: profile, preferred currency, marketing opt-in, notification preferences; email change (password + re-verify);
+  password change (signs out other devices); sessions list/revoke; push device tokens (FCM, one token = one install).
+- Privacy: `/me/export` returns everything held about the person. `DELETE /me` (password; must confirm giving up
+  upcoming tickets/active rentals; blocked for organizer owners and open refunds) erases personal details, revokes
+  tokens and devices, and soft-deletes an anonymous user row. Orders, payments, refunds and the audit log are kept for
+  record keeping and no longer identify the person.

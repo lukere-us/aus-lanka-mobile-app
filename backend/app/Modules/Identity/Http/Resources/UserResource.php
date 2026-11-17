@@ -19,6 +19,9 @@ class UserResource extends JsonResource
             'status' => $this->status,
             'email_verified' => $this->email_verified_at !== null,
             'phone_verified' => $this->phone_verified_at !== null,
+            'preferred_currency' => $this->preferred_currency,
+            'marketing_opt_in' => (bool) $this->marketing_opt_in,
+            'notification_prefs' => $this->notification_prefs ?? ['push' => true, 'email_reminders' => true],
             'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('slug')->values()),
             'permissions' => $this->when(
                 $request->user()?->is($this->resource),

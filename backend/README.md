@@ -54,6 +54,12 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/auth/reset-password` | — | Sets a new password, revokes all tokens |
 | POST | `/api/v1/auth/logout` | token | Revokes the current token |
 | GET | `/api/v1/me` | token | Current user, roles, permissions |
+| PATCH, DELETE | `/api/v1/me` | token | Update profile/preferences · delete account (password; anonymises, keeps financial records) |
+| POST | `/api/v1/me/verify/{email\|sms}/send` · `/me/verify/{email\|sms}` | token | Send / check a 6-digit verification code (verified email needed to buy) |
+| PUT | `/api/v1/me/email`, `/api/v1/me/password` | token | Change email (re-verify) or password (signs out other devices) |
+| GET, DELETE | `/api/v1/me/sessions[/{id}]` | token | Signed-in devices; sign one out |
+| POST, DELETE | `/api/v1/me/devices` | token | Register / remove a push-notification token |
+| GET | `/api/v1/me/export` | token | Download everything held about me (privacy request) |
 | GET | `/api/v1/admin/users` | `users.view` | Search/filter users (paginated) |
 | GET | `/api/v1/admin/users/{id}` | `users.view` | One user |
 | PUT | `/api/v1/admin/users/{id}/roles` | `roles.assign` | Replace a user's roles (audited) |
@@ -110,6 +116,9 @@ customer through the real checkout (fake payment, server-side verification, rent
 browser player on a 10-minute signed link. The film is Big Buck Bunny (Blender Foundation, CC BY 3.0).
 Same thing by hand: `php artisan db:seed --class=Database\Seeders\DemoContentSeeder`, `php artisan serve`,
 then `php artisan demo:rental-link` and open the printed link.
+
+Locally (`APP_ENV=local`) the API returns verification codes as `debug_code`, and emails/SMS are written to
+`storage/logs` instead of being sent, so the app can be tested without a mailbox or SMS provider.
 
 ### Payments with Stripe
 

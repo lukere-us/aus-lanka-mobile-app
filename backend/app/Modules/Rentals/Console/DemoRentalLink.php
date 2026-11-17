@@ -41,6 +41,7 @@ class DemoRentalLink extends Command
         }
 
         $user = User::firstOrCreate(['email' => $this->option('email')], ['name' => 'Demo Customer', 'password' => Str::random(32), 'status' => User::STATUS_ACTIVE]);
+        $user->forceFill(['email_verified_at' => $user->email_verified_at ?? now()])->save();
         $user->roles()->syncWithoutDetaching(Role::where('slug', Role::CUSTOMER)->pluck('id'));
 
         $rental = Rental::where('user_id', $user->id)->where('movie_id', $package->movie_id)->whereIn('status', [Rental::READY, Rental::ACTIVE])->latest('id')->first();

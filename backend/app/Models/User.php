@@ -21,9 +21,14 @@ class User extends Authenticatable
 
     public const STATUS_SUSPENDED = 'suspended';
 
-    protected $fillable = ['name', 'email', 'phone', 'password', 'status'];
+    public const STATUS_DELETED = 'deleted';
+
+    protected $fillable = ['name', 'email', 'phone', 'password', 'status', 'preferred_currency', 'marketing_opt_in', 'notification_prefs'];
 
     protected $hidden = ['password', 'remember_token'];
+
+    /** Column defaults, so a just-created model has every profile field without a reload. */
+    protected $attributes = ['preferred_currency' => null, 'marketing_opt_in' => false, 'notification_prefs' => null];
 
     /** Permission slugs cached for the lifetime of this model instance. */
     private ?Collection $permissionCache = null;
@@ -35,6 +40,8 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'marketing_opt_in' => 'boolean',
+            'notification_prefs' => 'array',
         ];
     }
 

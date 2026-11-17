@@ -7,8 +7,10 @@ use App\Modules\Events\Http\Controllers\AdminEventController;
 use App\Modules\Events\Http\Controllers\OrganizerEventController;
 use App\Modules\Events\Http\Controllers\PublicEventController;
 use App\Modules\Finance\Http\Controllers\FinanceController;
+use App\Modules\Identity\Http\Controllers\AccountController;
 use App\Modules\Identity\Http\Controllers\AuthController;
 use App\Modules\Identity\Http\Controllers\PasswordResetController;
+use App\Modules\Identity\Http\Middleware\EnsureEmailVerified;
 use App\Modules\Movies\Http\Controllers\AdminMovieController;
 use App\Modules\Movies\Http\Controllers\PublicMovieController;
 use App\Modules\Orders\Http\Controllers\AdminOrderController;
@@ -69,13 +71,28 @@ if (! app()->isProduction() && config('video.provider') === 'sample') {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'me'])->name('me');
 
+    // --- My account (C02, C04) -------------------------------------------------------------
+    Route::prefix('me')->name('me.')->group(function () {
+        Route::patch('/', [AccountController::class, 'update'])->name('update');
+        Route::delete('/', [AccountController::class, 'destroy'])->middleware('throttle:auth')->name('destroy');
+        Route::put('email', [AccountController::class, 'changeEmail'])->middleware('throttle:auth')->name('email');
+        Route::put('password', [AccountController::class, 'changePassword'])->middleware('throttle:auth')->name('password');
+        Route::post('verify/{channel}/send', [AccountController::class, 'sendCode'])->whereIn('channel', ['email', 'sms'])->middleware('throttle:verification')->name('verify.send');
+        Route::post('verify/{channel}', [AccountController::class, 'verifyCode'])->whereIn('channel', ['email', 'sms'])->middleware('throttle:verification')->name('verify');
+        Route::post('devices', [AccountController::class, 'registerDevice'])->name('devices.store');
+        Route::delete('devices', [AccountController::class, 'removeDevice'])->name('devices.destroy');
+        Route::get('sessions', [AccountController::class, 'sessions'])->name('sessions');
+        Route::delete('sessions/{session}', [AccountController::class, 'revokeSession'])->whereNumber('session')->name('sessions.destroy');
+        Route::get('export', [AccountController::class, 'export'])->name('export');
+    });
+
     // --- Orders and checkout (D01, D05) -------------------------------------------
     Route::prefix('orders')->name('orders.')->group(function () {
         Route::get('/', [OrderController::class, 'index'])->name('index');
-        Route::post('/', [OrderController::class, 'store'])->middleware('permission:customer.purchase')->name('store');
+        Route::post('/', [OrderController::class, 'store'])->middleware(['permission:customer.purchase', EnsureEmailVerified::class])->name('store');
         Route::get('{reference}', [OrderController::class, 'show'])->name('show');
         Route::post('{reference}/verify-payment', [OrderController::class, 'verifyPayment'])->name('verify-payment');
-        Route::post('{reference}/pay', [OrderController::class, 'retryPayment'])->middleware('permission:customer.purchase')->name('pay');
+        Route::post('{reference}/pay', [OrderController::class, 'retryPayment'])->middleware(['permission:customer.purchase', EnsureEmailVerified::class])->name('pay');
         Route::get('{reference}/refunds', [RefundController::class, 'customerIndex'])->name('refunds.index');
         Route::post('{reference}/refunds', [RefundController::class, 'customerRequest'])->name('refunds.store');
     });

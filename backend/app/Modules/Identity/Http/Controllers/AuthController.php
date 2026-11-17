@@ -7,6 +7,7 @@ use App\Modules\Identity\Http\Requests\LoginRequest;
 use App\Modules\Identity\Http\Requests\RegisterRequest;
 use App\Modules\Identity\Http\Resources\UserResource;
 use App\Modules\Identity\Services\AuthService;
+use App\Modules\Identity\Services\VerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -18,8 +19,14 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->auth->registerCustomer($request->validated());
+        $code = app(VerificationService::class)->send($user, 'email');
 
-        return $this->tokenResponse($request, $user, $request->validated('device_name'), 201);
+        $response = $this->tokenResponse($request, $user, $request->validated('device_name'), 201);
+        if ($code) { // local development only: lets the app be tested without a mail inbox
+            $response->setData(array_merge_recursive($response->getData(true), ['data' => ['debug_code' => $code]]));
+        }
+
+        return $response;
     }
 
     public function login(LoginRequest $request): JsonResponse

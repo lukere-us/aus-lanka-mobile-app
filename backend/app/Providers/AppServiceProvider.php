@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\Identity\Sms\LogSmsSender;
+use App\Modules\Identity\Sms\SmsSender;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(SmsSender::class, LogSmsSender::class);
     }
 
     public function boot(): void
@@ -56,6 +58,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Playback starts and progress saves (an app saves progress every ~15 s).
         RateLimiter::for('playback', fn (Request $request) => Limit::perMinute(30)->by('play:'.$request->user()?->getAuthIdentifier()));
+
+        // Verification codes: a few sends and guesses per account per minute.
+        RateLimiter::for('verification', fn (Request $request) => Limit::perMinute(10)->by('verify:'.$request->user()?->getAuthIdentifier()));
 
         // Login, registration and password reset: per account+IP, plus a ceiling per IP (B07).
         RateLimiter::for('auth', fn (Request $request) => [
