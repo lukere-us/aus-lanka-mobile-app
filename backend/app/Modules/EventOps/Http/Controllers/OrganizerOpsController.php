@@ -11,6 +11,7 @@ use App\Modules\EventOps\Services\EventOpsService;
 use App\Modules\Events\Models\Event;
 use App\Modules\Organizers\Services\OrganizerContext;
 use App\Modules\Tickets\Models\Ticket;
+use App\Support\Csv;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -94,19 +95,13 @@ class OrganizerOpsController extends Controller
     {
         $e = $this->own($request, $event);
         $query = $this->attendeeQuery($request, $e);
+        $rows = function () use ($query) {
+            foreach ($query->lazy(500) as $t) {
+                yield array_values($this->attendeeRow($t));
+            }
+        };
 
-        return response()->streamDownload(function () use ($query) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['Ticket ID', 'Ticket number', 'Name', 'Email', 'Ticket type', 'Status', 'Checked in at (UTC)', 'Order']);
-            $query->chunk(500, function ($tickets) use ($out) {
-                foreach ($tickets as $t) {
-                    $r = $this->attendeeRow($t);
-                    fputcsv($out, array_map(fn ($v) => is_string($v) && preg_match('/^[=+\-@]/', $v) ? "'".$v : $v, // no spreadsheet formulas
-                        [$r['ticket_id'], $r['number'], $r['name'], $r['email'], $r['ticket_type'], $r['status'], $r['checked_in_at'], $r['order']]));
-                }
-            });
-            fclose($out);
-        }, "attendees-{$e->slug}.csv", ['Content-Type' => 'text/csv; charset=utf-8']);
+        return Csv::download("attendees-{$e->slug}.csv", ['Ticket ID', 'Ticket number', 'Name', 'Email', 'Ticket type', 'Status', 'Checked in at (UTC)', 'Order'], $rows());
     }
 
     public function sales(Request $request, int $event): JsonResponse

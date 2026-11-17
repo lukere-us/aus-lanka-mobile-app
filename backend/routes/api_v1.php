@@ -25,6 +25,7 @@ use App\Modules\Payments\Http\Controllers\WebhookController;
 use App\Modules\Refunds\Http\Controllers\RefundController;
 use App\Modules\Rentals\Http\Controllers\DevStreamController;
 use App\Modules\Rentals\Http\Controllers\RentalController;
+use App\Modules\Reports\Http\Controllers\ReportsController;
 use App\Modules\Settings\Http\Controllers\SettingsController;
 use App\Modules\Tickets\Http\Controllers\CheckInController;
 use App\Modules\Tickets\Http\Controllers\WalletController;
@@ -183,6 +184,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('{movie}/packages', [AdminMovieController::class, 'addPackage'])->name('packages.store');
             Route::patch('{movie}/packages/{package}', [AdminMovieController::class, 'updatePackage'])->name('packages.update');
         });
+
+        // --- Dashboard, reports, audit log (I02, I08) ---------------------------------------
+        Route::middleware('permission:reports.view')->group(function () {
+            Route::get('dashboard', [ReportsController::class, 'dashboard'])->name('dashboard');
+            Route::prefix('reports')->name('reports.')->group(function () {
+                Route::get('orders.csv', [ReportsController::class, 'orders'])->name('orders');
+                Route::get('refunds.csv', [ReportsController::class, 'refunds'])->name('refunds');
+                Route::get('payouts.csv', [ReportsController::class, 'payouts'])->name('payouts');
+                Route::get('organizer-balances.csv', [ReportsController::class, 'organizerBalances'])->name('organizer-balances');
+                Route::get('ticket-sales.csv', [ReportsController::class, 'ticketSales'])->name('ticket-sales');
+                Route::get('rentals.csv', [ReportsController::class, 'rentals'])->name('rentals');
+            });
+        });
+        Route::get('audit-logs', [ReportsController::class, 'auditLogs'])->middleware('permission:audit.view')->name('audit-logs');
 
         Route::get('settings', [SettingsController::class, 'index'])->middleware('permission:settings.manage')->name('settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');

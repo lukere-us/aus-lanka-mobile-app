@@ -82,6 +82,10 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/rentals/{id}/play` | token (renter) | Checks the rental, starts the window on first play, returns a 10-minute HLS link |
 | PUT | `/api/v1/rentals/{id}/progress` | token (renter) | Save playback position for resume |
 | GET/POST/PATCH | `/api/v1/admin/movies[...]` | `movies.manage` | Movies, video assets, rental packages, publish/unpublish |
+| GET | `/api/v1/admin/dashboard?from=&to=` | `reports.view` | Revenue split, refunds, commission, counts, daily series, top events/movies, items needing attention |
+| GET | `/api/v1/admin/reports/{orders,refunds,payouts,ticket-sales,rentals}.csv?from=&to=` | `reports.view` | Finance CSV exports (local Sydney days) |
+| GET | `/api/v1/admin/reports/organizer-balances.csv` | `reports.view` | Every organizer's current balance |
+| GET | `/api/v1/admin/audit-logs` (`format=csv`) | `audit.view` | Audit log, filter by action (`refund.*`), actor, subject, request id |
 | GET, PUT | `/api/v1/admin/settings` | `settings.manage` | Commission, booking fee, refund windows, payout hold (audited) |
 | GET, POST | `/api/v1/orders/{reference}/refunds` | token (owner) | Customer refund requests (policy-checked) |
 | GET | `/api/v1/admin/refunds` · POST `/{id}/approve`, `/{id}/reject` | `refunds.approve` | Finance reviews refund requests |

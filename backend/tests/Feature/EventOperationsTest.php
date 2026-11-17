@@ -139,6 +139,8 @@ class EventOperationsTest extends TestCase
         $this->org('GET', '/attendees?search=nobody-matches')->assertJsonCount(0, 'data');
 
         $csv = $this->org('GET', '/attendees.csv')->assertOk()->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $csv); // BOM so Excel reads UTF-8 names correctly
+        $csv = substr($csv, 3);
         $this->assertStringStartsWith('"Ticket ID","Ticket number",Name,Email', $csv);
         $this->assertSame(4, substr_count(trim($csv), "\n") + 1);
     }

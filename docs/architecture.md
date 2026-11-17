@@ -172,3 +172,16 @@ Push uses Firebase Cloud Messaging HTTP v1 (`PUSH_DRIVER=fcm`, service-account J
 - **Gate exceptions**: manual admit (e.g. dead phone) and undo check-in, each needs a reason and is audited.
 - **Attendee list** + CSV export (name, partly hidden email, ticket type, status, check-in time, order) and **sales
   summary** (stock per ticket type, gross, refunds, commission, net to organizer).
+
+## Dashboard, reports and audit log (I02, I08)
+
+Periods are whole local days in `MARKETPLACE_DISPLAY_TIMEZONE` (Australia/Sydney): `?from=2026-11-01&to=2026-11-30`
+(default last 30 days, max one year). Money in AUD.
+
+- `GET /admin/dashboard` (`reports.view`): gross split into tickets / rentals / booking fees, refunds, net, ticket
+  commission, platform revenue; paid orders, tickets and rentals sold, new and paying customers, check-ins, rentals
+  started; daily series; top 5 events and movies; "needs attention" counts (refund requests, failed refunds, payments in
+  review, organizers and events awaiting approval, unfulfilled ticket orders).
+- CSV exports (`reports.view`): orders, refunds, payouts, organizer balances, ticket sales per ticket type, rentals.
+  Streamed (no memory limit), UTF-8 with BOM for Excel, cells starting with = + - @ are neutralised.
+- `GET /admin/audit-logs` (`audit.view`): filter by action (`refund.*` wildcard), actor, subject, request id; `format=csv`.
