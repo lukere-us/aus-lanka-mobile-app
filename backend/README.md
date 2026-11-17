@@ -60,6 +60,8 @@ routes/api_v1.php        every v1 endpoint
 | GET, DELETE | `/api/v1/me/sessions[/{id}]` | token | Signed-in devices; sign one out |
 | POST, DELETE | `/api/v1/me/devices` | token | Register / remove a push-notification token |
 | GET | `/api/v1/me/export` | token | Download everything held about me (privacy request) |
+| GET | `/api/v1/me/notifications` | token | Notification inbox with unread count |
+| POST | `/api/v1/me/notifications/read` | token | Mark some (`ids`) or all as read |
 | GET | `/api/v1/admin/users` | `users.view` | Search/filter users (paginated) |
 | GET | `/api/v1/admin/users/{id}` | `users.view` | One user |
 | PUT | `/api/v1/admin/users/{id}/roles` | `roles.assign` | Replace a user's roles (audited) |
@@ -106,7 +108,7 @@ routes/api_v1.php        every v1 endpoint
 
 Checkout sells event tickets `{"type":"ticket_type","id":1,"quantity":2}` and movie rentals `{"type":"rental_package","id":1,"quantity":1}`.
 The flow: `POST /orders` → open `payment.checkout_url` and add `?outcome=succeeded` → the fake provider sends a
-signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,fulfillment,default`
+signed webhook → order becomes `paid` and `OrderPaid` fires once. Run `php artisan queue:work --queue=payments,fulfillment,notifications,default`
 and `php artisan schedule:work` (expires unpaid orders after 15 minutes) alongside `php artisan serve`.
 
 ### Watch the sample film (rental test)

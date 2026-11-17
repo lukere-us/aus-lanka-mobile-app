@@ -13,6 +13,7 @@ use App\Modules\Identity\Http\Controllers\PasswordResetController;
 use App\Modules\Identity\Http\Middleware\EnsureEmailVerified;
 use App\Modules\Movies\Http\Controllers\AdminMovieController;
 use App\Modules\Movies\Http\Controllers\PublicMovieController;
+use App\Modules\Notifications\Http\Controllers\InboxController;
 use App\Modules\Orders\Http\Controllers\AdminOrderController;
 use App\Modules\Orders\Http\Controllers\OrderController;
 use App\Modules\Organizers\Http\Controllers\AdminOrganizerController;
@@ -84,6 +85,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('sessions', [AccountController::class, 'sessions'])->name('sessions');
         Route::delete('sessions/{session}', [AccountController::class, 'revokeSession'])->whereNumber('session')->name('sessions.destroy');
         Route::get('export', [AccountController::class, 'export'])->name('export');
+        Route::get('notifications', [InboxController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/read', [InboxController::class, 'markRead'])->name('notifications.read');
     });
 
     // --- Orders and checkout (D01, D05) -------------------------------------------

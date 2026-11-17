@@ -4,10 +4,12 @@ namespace App\Modules\Refunds\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiException;
+use App\Models\User;
 use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Events\Enums\EventStatus;
 use App\Modules\Events\Models\Event;
 use App\Modules\Events\Models\TicketType;
+use App\Modules\Notifications\Messages\EventCancelled;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Refunds\Jobs\RefundCancelledEvent;
 use App\Modules\Refunds\Models\Refund;
@@ -16,6 +18,7 @@ use App\Modules\Tickets\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class RefundController extends Controller
 {
@@ -86,6 +89,8 @@ class RefundController extends Controller
             TicketType::where('event_id', $event->id)->update(['status' => 'hidden']);
             $this->audit->record('event.cancelled', $event, ['before' => $before->value, 'reason' => $v['reason']]);
         });
+        $holders = User::whereIn('id', Ticket::where('event_id', $event->id)->where('status', Ticket::VALID)->distinct()->pluck('user_id'))->get();
+        Notification::send($holders, new EventCancelled($event->id, $event->title, $v['reason']));
         RefundCancelledEvent::dispatch($event->id, $request->user()->id, $v['reason']);
 
         return response()->json(['data' => ['status' => 'cancelled', 'refunds' => 'queued']], 202);

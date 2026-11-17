@@ -11,3 +11,4 @@ Schedule::command('auth:clear-resets')->everyFifteenMinutes();
 Schedule::command('orders:expire-pending')->everyMinute()->withoutOverlapping();
 Schedule::command('rentals:expire')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('refunds:sync')->everyTenMinutes()->withoutOverlapping();
+Schedule::command('notifications:reminders')->everyFifteenMinutes()->withoutOverlapping();

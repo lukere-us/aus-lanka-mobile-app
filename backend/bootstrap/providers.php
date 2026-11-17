@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Notifications\NotificationsServiceProvider;
 use App\Modules\Orders\OrdersServiceProvider;
 use App\Modules\Rentals\RentalsServiceProvider;
 use App\Modules\Tickets\TicketingServiceProvider;
@@ -10,4 +11,5 @@ return [
     OrdersServiceProvider::class,
     TicketingServiceProvider::class,
     RentalsServiceProvider::class,
+    NotificationsServiceProvider::class,
 ];

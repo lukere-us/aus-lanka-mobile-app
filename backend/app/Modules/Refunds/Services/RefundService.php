@@ -8,6 +8,7 @@ use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Events\Models\Event;
 use App\Modules\Events\Models\TicketType;
 use App\Modules\Finance\Services\LedgerService;
+use App\Modules\Notifications\Messages\RefundCompleted;
 use App\Modules\Orders\Enums\OrderStatus;
 use App\Modules\Orders\Models\Order;
 use App\Modules\Payments\Data\RefundResult;
@@ -187,6 +188,7 @@ class RefundService
                 'provider_refund_id' => $result->providerRefundId ?? $locked->provider_refund_id]);
             $this->updateOrderStatus($locked->order_id);
             $this->audit->record('refund.succeeded', $locked, ['amount' => $locked->amount, 'currency' => $locked->currency]);
+            $locked->order->user?->notify(new RefundCompleted($locked->id)); // queued after commit
         });
     }
 

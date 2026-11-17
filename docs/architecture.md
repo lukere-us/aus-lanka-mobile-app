@@ -138,3 +138,23 @@ Balance = SUM(ledger); available = entries for events started >= hold days ago, 
   upcoming tickets/active rentals; blocked for organizer owners and open refunds) erases personal details, revokes
   tokens and devices, and soft-deletes an anonymous user row. Orders, payments, refunds and the audit log are kept for
   record keeping and no longer identify the person.
+
+## Notifications (J01, J02)
+
+Every customer notification goes to the in-app inbox (`/me/notifications`), to push on each registered device, and
+by email where noted. Queued on `notifications`, sent after the transaction commits; deleted accounts get nothing.
+
+| Notification | Trigger | Push | Email |
+| --- | --- | --- | --- |
+| Order receipt (itemised) | OrderPaid | no | always |
+| Tickets ready | tickets issued | yes | no (receipt covers it) |
+| Rental ready | rental created | yes | no |
+| Rental ends soon | 3 h before the window ends (scheduled) | yes | if `email_reminders` |
+| Event tomorrow | 24 h before start (scheduled, once per person) | yes | if `email_reminders` |
+| Event changed | date, time or venue of a published event changes | yes | always |
+| Event cancelled | admin cancels | yes | always |
+| Refund processed | refund succeeds | yes | always |
+
+Push uses Firebase Cloud Messaging HTTP v1 (`PUSH_DRIVER=fcm`, service-account JSON in `FCM_CREDENTIALS`); until then
+`PUSH_DRIVER=log` writes pushes to `storage/logs`. Tokens Firebase reports as unregistered are deleted. The user's
+`notification_prefs.push = false` stops pushes (inbox still fills). Scheduler: `notifications:reminders` every 15 min.

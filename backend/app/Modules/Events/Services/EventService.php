@@ -9,8 +9,11 @@ use App\Modules\Events\Enums\EventStatus;
 use App\Modules\Events\Models\Event;
 use App\Modules\Events\Models\TicketType;
 use App\Modules\Events\Models\Venue;
+use App\Modules\Notifications\Messages\EventChanged;
 use App\Modules\Organizers\Models\Organizer;
+use App\Modules\Tickets\Models\Ticket;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class EventService
@@ -42,6 +45,12 @@ class EventService
         $before = $event->only(array_keys($data));
         $event->update($data);
         $this->audit->record('event.updated', $event, ['before' => $before, 'after' => $event->only(array_keys($data))]);
+
+        // Ticket holders hear about a new date, time or venue.
+        if ($event->status === EventStatus::Published && $event->wasChanged(['starts_at', 'venue_id', 'doors_open_at'])) {
+            $holders = User::whereIn('id', Ticket::where('event_id', $event->id)->where('status', Ticket::VALID)->distinct()->pluck('user_id'))->get();
+            Notification::send($holders, new EventChanged($event->id));
+        }
 
         return $event;
     }
