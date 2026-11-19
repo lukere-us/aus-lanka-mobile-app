@@ -17,11 +17,17 @@ class AdminEventController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $v = $request->validate(['status' => ['nullable', Rule::enum(EventStatus::class)]]);
+        $v = $request->validate(['status' => ['nullable', Rule::enum(EventStatus::class)], 'search' => ['nullable', 'string', 'max:100']]);
 
         return EventResource::collection(Event::with(['venue', 'organizer', 'ticketTypes'])
             ->when($v['status'] ?? null, fn ($q, $s) => $q->where('status', $s))
+            ->when($v['search'] ?? null, fn ($q, $s) => $q->where('title', 'like', "%{$s}%"))
             ->orderBy('starts_at')->paginate(25)->withQueryString());
+    }
+
+    public function show(Event $event): EventResource
+    {
+        return new EventResource($event->load(['venue', 'organizer', 'ticketTypes']));
     }
 
     public function review(Request $request, Event $event): EventResource

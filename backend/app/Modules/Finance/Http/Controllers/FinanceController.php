@@ -51,9 +51,13 @@ class FinanceController extends Controller
 
     public function payouts(Request $request): JsonResponse
     {
-        $page = Payout::latest('id')->when($request->integer('organizer_id'), fn ($q, $id) => $q->where('organizer_id', $id))->paginate(25);
+        $page = Payout::with('organizer:id,name')->latest('id')->when($request->integer('organizer_id'), fn ($q, $id) => $q->where('organizer_id', $id))->paginate(25);
 
-        return response()->json(['data' => $page->items(), 'meta' => ['total' => $page->total()]]);
+        return response()->json([
+            'data' => collect($page->items())->map(fn (Payout $p) => $p->only(['id', 'organizer_id', 'amount', 'currency', 'reference', 'note', 'created_at'])
+                + ['organizer_name' => $p->organizer?->name])->values(),
+            'meta' => ['total' => $page->total(), 'current_page' => $page->currentPage()],
+        ]);
     }
 
     public function setCommission(Request $request, Organizer $organizer): JsonResponse

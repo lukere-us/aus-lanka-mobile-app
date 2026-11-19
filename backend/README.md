@@ -81,7 +81,7 @@ routes/api_v1.php        every v1 endpoint
 | GET | `/api/v1/rentals` · `/rentals/{id}` | token (renter) | My rental library: status, start-by, time left, resume position |
 | POST | `/api/v1/rentals/{id}/play` | token (renter) | Checks the rental, starts the window on first play, returns a 10-minute HLS link |
 | PUT | `/api/v1/rentals/{id}/progress` | token (renter) | Save playback position for resume |
-| GET/POST/PATCH | `/api/v1/admin/movies[...]` | `movies.manage` | Movies, video assets, rental packages, publish/unpublish |
+| GET/POST/PATCH | `/api/v1/admin/movies[...]` | `movies.manage` | Movies (list, `GET /{id}`), video assets, rental packages, publish/unpublish |
 | GET | `/api/v1/admin/dashboard?from=&to=` | `reports.view` | Revenue split, refunds, commission, counts, daily series, top events/movies, items needing attention |
 | GET | `/api/v1/admin/reports/{orders,refunds,payouts,ticket-sales,rentals}.csv?from=&to=` | `reports.view` | Finance CSV exports (local Sydney days) |
 | GET | `/api/v1/admin/reports/organizer-balances.csv` | `reports.view` | Every organizer's current balance |
@@ -104,7 +104,7 @@ routes/api_v1.php        every v1 endpoint
 | POST | `/api/v1/organizer/events/{id}/submit` | `organizer.events.manage` | Send for review (approved organizers only) |
 | POST/PATCH | `/api/v1/organizer/events/{id}/ticket-types[/{id}]` | `organizer.events.manage` | Ticket types: price, quantity, sale window, max per order |
 | GET, PATCH `/{id}/status` | `/api/v1/admin/organizers` | `organizers.approve` | Approve / reject / suspend organizers |
-| GET, POST `/{id}/review` | `/api/v1/admin/events` | `events.approve` | Approve or reject events awaiting review |
+| GET (`?status=&search=`), GET `/{id}`, POST `/{id}/review` | `/api/v1/admin/events` | `events.approve` | List, view, approve or reject events awaiting review |
 | GET | `/api/v1/tickets`, `/api/v1/tickets/{id}` | token (holder) | Ticket wallet with QR value |
 | POST | `/api/v1/scanner/check-in` | `scanner.checkin` (assigned organizer) | Scan `{qr, event_id}`: admitted once, then `ticket_already_used` |
 | GET | `/api/v1/scanner/events` · `/scanner/events/{id}/stats` | scanner staff | Events I can scan (with my gate) and live entry numbers |
@@ -115,6 +115,22 @@ routes/api_v1.php        every v1 endpoint
 | GET | `/api/v1/organizer/events/{id}/sales`, `/stats`, `/scans` | `organizer.events.manage` | Sales and money, live entry stats, scan log |
 | POST | `/api/v1/organizer/events/{id}/tickets/{ticket}/admit`, `/undo-check-in` | `organizer.events.manage` | Gate exceptions with a reason (audited) |
 | GET, POST | `/api/v1/organizer/devices`, `/devices/{id}/revoke` | `organizer.events.manage` | Scanning devices; revoke a lost one |
+
+### Sample data
+
+`scripts\sample-data.bat` (or `php artisan db:seed --class=SampleDataSeeder`) fills the local database with five weeks of
+realistic history so every admin and organizer screen has something to show:
+
+- 12 customers plus finance, content and event staff
+- 2 approved organizers with venues and gate staff, and 1 organizer application waiting for approval
+- 6 events: one that already happened (with check-ins and a payout), two on sale, one waiting for approval, one draft, and one cancelled and refunded
+- 7 movies with sample videos and rental packages
+- About 50 paid orders in AUD, LKR and USD, failed and unfinished payments, rentals being watched, and refund requests
+
+It goes through the real checkout, fake gateway, ledger and refund services, so all the totals agree. It runs once (it
+does nothing if the sample customers exist) and only with the fake gateway outside production. Every sample account
+uses the password `Password!2345`; the accounts are listed when it finishes (for example `kasun@example.com` for an
+organizer). `scripts\sample-data.bat fresh` wipes the local database and starts again.
 
 ### Try a purchase locally (fake gateway)
 

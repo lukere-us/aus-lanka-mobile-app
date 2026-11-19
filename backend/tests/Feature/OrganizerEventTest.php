@@ -66,6 +66,13 @@ class OrganizerEventTest extends TestCase
         $this->actingAs($owner)->postJson("/api/v1/organizer/events/{$eventId}/submit")->assertOk()->assertJsonPath('data.status', 'pending_review');
         $this->getJson('/api/v1/events')->assertOk()->assertJsonCount(0, 'data');
 
+        $manager = $this->userWithRole(Role::EVENT_MANAGER);
+        $this->actingAs($manager)->getJson("/api/v1/admin/events/{$eventId}")
+            ->assertOk()->assertJsonPath('data.status', 'pending_review')->assertJsonPath('data.ticket_types.0.quantity_total', fn ($n) => $n > 0);
+        $this->actingAs($manager)->getJson('/api/v1/admin/events?search='.urlencode(substr(Event::find($eventId)->title, 0, 6)))
+            ->assertJsonPath('data.0.id', $eventId);
+        $this->actingAs($manager)->getJson('/api/v1/admin/events?search=zzz-no-match')->assertJsonCount(0, 'data');
+        $this->actingAs($this->userWithRole(Role::FINANCE_MANAGER))->getJson("/api/v1/admin/events/{$eventId}")->assertForbidden();
         $this->actingAs($this->userWithRole(Role::EVENT_MANAGER))->postJson("/api/v1/admin/events/{$eventId}/review", ['decision' => 'approve'])
             ->assertOk()->assertJsonPath('data.status', 'published');
 

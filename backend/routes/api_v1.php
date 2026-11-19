@@ -179,6 +179,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('permission:movies.manage')->prefix('movies')->name('movies.')->group(function () {
             Route::get('/', [AdminMovieController::class, 'index'])->name('index');
             Route::post('/', [AdminMovieController::class, 'store'])->name('store');
+            Route::get('{movie}', [AdminMovieController::class, 'show'])->name('show');
             Route::patch('{movie}', [AdminMovieController::class, 'update'])->name('update');
             Route::post('{movie}/assets', [AdminMovieController::class, 'addAsset'])->name('assets.store');
             Route::post('{movie}/packages', [AdminMovieController::class, 'addPackage'])->name('packages.store');
@@ -223,6 +224,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('organizers/{organizer}/status', [AdminOrganizerController::class, 'updateStatus'])->middleware('permission:organizers.approve')->name('organizers.status');
 
         Route::get('events', [AdminEventController::class, 'index'])->middleware('permission:events.approve|events.manage')->name('events.index');
+        Route::get('events/{event}', [AdminEventController::class, 'show'])->middleware('permission:events.approve|events.manage')->whereNumber('event')->name('events.show');
         Route::post('events/{event}/review', [AdminEventController::class, 'review'])->middleware('permission:events.approve')->name('events.review');
     });
 });

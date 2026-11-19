@@ -93,6 +93,9 @@ class RefundAndPayoutTest extends TestCase
 
         $this->actingAs($this->finance)->getJson("/api/v1/admin/organizers/{$organizer->id}/balance")
             ->assertJsonPath('data.available', '500.00')->assertJsonPath('data.paid_out', '4000.00');
+        $this->actingAs($this->finance)->getJson('/api/v1/admin/payouts')
+            ->assertJsonPath('data.0.organizer_id', $organizer->id)->assertJsonPath('data.0.organizer_name', $organizer->name)
+            ->assertJsonPath('data.0.amount', '4000.00')->assertJsonPath('meta.total', 1);
         $this->actingAs($this->customer)->postJson("/api/v1/admin/organizers/{$organizer->id}/payouts", ['amount' => '1', 'reference' => 'x'])->assertForbidden();
     }
 

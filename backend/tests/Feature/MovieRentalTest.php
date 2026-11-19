@@ -72,6 +72,9 @@ class MovieRentalTest extends TestCase
         $this->actingAs($cm)->patchJson("/api/v1/admin/movies/{$id}", ['status' => 'published'])->assertOk();
 
         $this->getJson('/api/v1/movies?language=Sinhala')->assertJsonPath('data.0.title', 'Kandy Nights');
+        $this->actingAs($cm)->getJson("/api/v1/admin/movies/{$id}")
+            ->assertOk()->assertJsonPath('data.title', 'Kandy Nights')->assertJsonPath('data.rental_packages.0.name', '72-hour rental');
+        $this->actingAs($this->customer)->getJson("/api/v1/admin/movies/{$id}")->assertForbidden();
         $this->actingAs($this->customer)->postJson('/api/v1/admin/movies', ['title' => 'Nope'])->assertForbidden();
         $this->assertDatabaseHas('audit_logs', ['action' => 'movie.status_changed']);
     }

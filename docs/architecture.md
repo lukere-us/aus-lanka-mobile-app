@@ -185,3 +185,13 @@ Periods are whole local days in `MARKETPLACE_DISPLAY_TIMEZONE` (Australia/Sydney
 - CSV exports (`reports.view`): orders, refunds, payouts, organizer balances, ticket sales per ticket type, rentals.
   Streamed (no memory limit), UTF-8 with BOM for Excel, cells starting with = + - @ are neutralised.
 - `GET /admin/audit-logs` (`audit.view`): filter by action (`refund.*` wildcard), actor, subject, request id; `format=csv`.
+
+## Admin and organizer website (portal/, I01)
+
+Next.js (App Router) with server components only talking to the API. The browser signs in through a server action
+that calls `POST /auth/login` and stores the Sanctum token in an httpOnly, SameSite=Lax cookie; the browser never holds
+the token and never calls the API directly (no CORS entry needed). Pages call the API server-side with that token; a
+401 sends the user back to sign-in. Access is decided by the `permissions` list from `GET /me` (portal layout requires
+at least one staff or organizer permission; each page checks its own), and the API enforces the same permissions on
+every call. CSV downloads go through `/download/...`, which only forwards report paths. See portal/README.md.
+

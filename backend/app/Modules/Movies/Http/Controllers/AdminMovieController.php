@@ -28,6 +28,11 @@ class AdminMovieController extends Controller
             ->latest('id')->paginate(25)->withQueryString());
     }
 
+    public function show(Movie $movie): MovieResource
+    {
+        return new MovieResource($movie->load(['packages', 'assets']));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate($this->movieRules(true));
